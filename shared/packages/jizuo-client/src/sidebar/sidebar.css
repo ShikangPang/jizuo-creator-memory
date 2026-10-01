@@ -323,7 +323,7 @@
   padding: 0 6px 4px 8px;
 }
 
-.jz-works-panel .jz-memory-palace-entry {
+.jz-memory-palace-entry {
   display: flex;
   flex: none;
   align-items: center;
@@ -334,7 +334,12 @@
   border-radius: 8px;
   font: inherit;
   text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }
+.jz-memory-palace-entry:disabled { cursor: default; opacity: .58; }
 .jz-memory-palace-entry > span:first-child { display: flex; flex: none; }
 .jz-memory-palace-entry:is(:hover:not(:disabled), [aria-pressed="true"]) {
   background: var(--dsw-alias-fill-secondary, #eaf0f2);

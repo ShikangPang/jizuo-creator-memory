@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ComponentProps } from "r
 import type { WorkSummary } from "@jizuo/contracts";
 import { WorksSidebarPanel } from "../../jizuo-client/src/sidebar/WorksSidebarPanel.tsx";
 import { WorkSessions } from "../../jizuo-client/src/sidebar/WorkSessions.tsx";
+import { MemoryPalaceEntry } from "../../jizuo-client/src/sidebar/MemoryPalaceEntry.tsx";
 import { ActionIcon } from "../../jizuo-client/src/ui/ActionIcon.tsx";
 import { clearSelection } from "../../jizuo-client/src/content/selection.ts";
 import { setSidebarChromeWidth, clearSidebarChromeWidth } from "../../jizuo-client/src/overlay/shellChrome.ts";
@@ -76,6 +77,7 @@ export function NativeWorkspaces({ host, ...props }: ComponentProps<typeof Works
     void Promise.resolve().then(action).catch(() => setError("工作区操作未完成，请重试。"));
   };
   return <div ref={region} data-plugin="jizuo" data-surface="native-workspaces">
+    <MemoryPalaceEntry />
     {error && <p role="alert">{error}<button onClick={() => setRetry(x => x + 1)}>重试</button></p>}
     <WorksSidebarPanel {...props} workspaceMode onWorksChanged={projectsChanged} extraWorkspaces={(query) => {
       const snapshot = host.workspaces.list?.getSnapshot();

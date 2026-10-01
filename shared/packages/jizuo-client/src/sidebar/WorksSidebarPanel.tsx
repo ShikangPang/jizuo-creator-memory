@@ -23,6 +23,7 @@ import { VideoEpisodeTree } from "../video/VideoEpisodeTree.tsx";
 import { CreateContentDialog } from "./CreateContentDialog.tsx";
 import { WorkToolsDialog, type PickExportFile } from "./WorkToolsDialog.tsx";
 import { WorkSessions } from "./WorkSessions.tsx";
+import { MemoryPalaceEntry } from "./MemoryPalaceEntry.tsx";
 import type { SessionNavigation } from "./sessionNavigation.ts";
 
 export type CreateTarget =
@@ -672,12 +673,7 @@ export function WorksSidebarPanel({
       </div>
 
       {!showTrash && <input className="jz-project-search" aria-label="搜索工作区" placeholder="搜索项目或工作区" value={query} onChange={event => setQuery(event.target.value)} />}
-      {!showTrash && isBuiltinPluginEnabled("memory") && (selection.workId === null || pluginEnabled(selection.workId, "memory")) && <button type="button" className="jz-memory-palace-entry" aria-label="打开记忆宫殿"
-        title={selection.workId === null ? "请先选择作品" : "打开记忆宫殿"}
-        disabled={selection.workId === null} aria-pressed={selection.overlay === "memory"}
-        onClick={() => { setSelection({ overlay: "memory" }); }}>
-        <span aria-hidden="true"><ActionIcon name="memory" /></span><span>记忆宫殿</span>
-      </button>}
+      {!showTrash && !workspaceMode && <MemoryPalaceEntry />}
 
       {createTarget !== null && <CreateContentDialog
         kind={createTarget.kind} projectKind={projectKind} onProjectKindChange={setProjectKind} availableKinds={[...(novelAvailable ? ["novel" as const] : []), ...(videoAvailable ? ["video" as const] : [])]}
