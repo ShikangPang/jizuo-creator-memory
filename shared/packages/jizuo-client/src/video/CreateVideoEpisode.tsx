@@ -9,6 +9,7 @@ import { VideoSourcePicker } from "./VideoSourcePicker.tsx";
 
 export function CreateVideoEpisode({ remote, workId, close }: { remote: JizuoContentRemote; workId: string; close: () => void }) {
   const [title, setTitle] = useState("");
+  const [suggestedTitle, setSuggestedTitle] = useState("");
   const [sourceChapters, setSourceChapters] = useState<VideoSourceChapter[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +31,9 @@ export function CreateVideoEpisode({ remote, workId, close }: { remote: JizuoCon
     } finally { setBusy(false); }
   };
   return <form className="jz-video-create" onSubmit={(event) => { void create(event); }}>
-    <label className="jz-video-create-name"><span>视频集名称</span><input aria-label="视频集名称" placeholder="视频集名称" autoFocus maxLength={120} value={title} disabled={busy} onChange={(event) => setTitle(event.target.value)} /></label>
-    <VideoSourcePicker remote={remote} workId={workId} value={sourceChapters} onChange={setSourceChapters} disabled={busy} />
+    <label className="jz-video-create-name"><span>视频集名称</span><input aria-label="视频集名称" placeholder={suggestedTitle ? `建议：${suggestedTitle}` : "视频集名称"} autoFocus maxLength={120} value={title} disabled={busy} onChange={(event) => setTitle(event.target.value)} /></label>
+    {!title.trim() && suggestedTitle && <button className="jz-video-use-title" type="button" disabled={busy} onClick={() => setTitle(suggestedTitle)}>采用建议名称</button>}
+    <VideoSourcePicker remote={remote} workId={workId} value={sourceChapters} onChange={setSourceChapters} disabled={busy} onSuggestedTitleChange={setSuggestedTitle} />
     <div className="jz-video-create-actions"><button type="button" disabled={busy} onClick={close}>取消</button><button className="jz-video-create-submit" type="submit" disabled={busy || !title.trim()}>{busy ? "创建中…" : "创建"}</button></div>
     {error && <p role="alert">{error}</p>}
   </form>;

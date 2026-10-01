@@ -1,20 +1,32 @@
 import { userErrorMessage } from "@jizuo/contracts";
 import "./video-source-picker.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChapterSummary, VideoSourceChapter, WorkSummary } from "@jizuo/contracts";
 import type { JizuoContentRemote } from "../content/remote.ts";
 
 const sourceKey = (item: VideoSourceChapter, fallback: string) => JSON.stringify([item.sourceWorkId ?? fallback, item.volumeId, item.chapterId]);
 
-export function VideoSourcePicker({ remote, workId, value, onChange, disabled }: {
+export function VideoSourcePicker({ remote, workId, value, onChange, disabled, onSuggestedTitleChange }: {
   remote: JizuoContentRemote; workId: string; value: VideoSourceChapter[];
   onChange: (chapters: VideoSourceChapter[]) => void; disabled?: boolean;
+  onSuggestedTitleChange?: (title: string) => void;
 }) {
   const [works, setWorks] = useState<WorkSummary[]>([]);
   const [sourceWorkId, setSourceWorkId] = useState(value[0]?.sourceWorkId ?? "");
   const [groups, setGroups] = useState<Array<{ title: string; chapters: ChapterSummary[] }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const chapterTitles = useRef(new Map<string, string>());
+  const loadedSourceWorkId = useRef("");
+  useEffect(() => {
+    if (loadedSourceWorkId.current === sourceWorkId) for (const group of groups) for (const chapter of group.chapters) {
+      chapterTitles.current.set(sourceKey({sourceWorkId, volumeId: chapter.volumeId, chapterId: chapter.id}, workId), chapter.title);
+    }
+    const first = value[0];
+    const firstTitle = first ? chapterTitles.current.get(sourceKey(first, workId)) : undefined;
+    const suggestion = firstTitle ? (value.length > 1 ? `${firstTitle}（含${value.length}章）` : firstTitle) : "";
+    onSuggestedTitleChange?.(Array.from(suggestion).slice(0, 120).join(""));
+  }, [groups, sourceWorkId, value, workId, onSuggestedTitleChange]);
   useEffect(() => {
     let active = true;
     void Promise.resolve().then(() => remote.listWorks()).then(items => {
@@ -34,7 +46,7 @@ export function VideoSourcePicker({ remote, workId, value, onChange, disabled }:
     setError(null);
     void remote.listVolumes({ workId: sourceWorkId }).then(async (volumes) => Promise.all(volumes.map(async (volume) => ({
       title: volume.title, chapters: await remote.listChapters({ workId: sourceWorkId, volumeId: volume.id }),
-    })))).then((next) => { if (active) setGroups(next); }).catch((cause: unknown) => {
+    })))).then((next) => { if (active) { loadedSourceWorkId.current = sourceWorkId; setGroups(next); } }).catch((cause: unknown) => {
       if (active) setError(userErrorMessage(cause, "原著章节加载失败，请重新选择小说项目", { operation: "VideoSourcePicker", effect: "read" }));
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };

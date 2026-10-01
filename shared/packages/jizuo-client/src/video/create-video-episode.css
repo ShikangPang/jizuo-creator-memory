@@ -10,3 +10,7 @@ form.jz-video-create { box-sizing: border-box; min-width: 0; padding: 12px; bord
 .jz-video-create .jz-video-create-actions .jz-video-create-submit:hover:not(:disabled) { background: var(--dsw-alias-label-primary, #202326); opacity: .85; }
 .jz-video-create .jz-video-create-actions button:focus-visible { outline: 2px solid var(--dsw-focus-ring-color, #4d6bfe); outline-offset: 2px; }
 .jz-video-create .jz-video-create-actions button:disabled { opacity: .4; cursor: default; }
+
+.jz-video-create button.jz-video-use-title { margin-top: 6px; padding: 4px 0; border: 0; background: transparent; color: var(--dsw-alias-label-secondary, #687078); font-size: 12px; cursor: pointer; }
+.jz-video-create button.jz-video-use-title:hover { color: var(--dsw-alias-label-primary, #202326); text-decoration: underline; }
+.jz-video-create button.jz-video-use-title:focus-visible { outline: 2px solid var(--dsw-focus-ring-color, #4d6bfe); outline-offset: 2px; }
