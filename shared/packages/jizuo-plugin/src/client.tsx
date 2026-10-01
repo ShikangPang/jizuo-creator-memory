@@ -958,7 +958,7 @@ export async function apply(ctx: Context, options: ClientOptions = {}): Promise<
   // Feature clients contribute panel factories without invoking remote methods.
   // Publish this synchronous capability before remote mounting can yield: the
   // native shell audits feature activation before starting its transport loop.
-  creationClientApi.preferences.trackWorkspacePluginAvailability();
+  creationClientApi.preferences.trackWorkspacePluginAvailability({ hostManaged: options.hostUi === "native" });
   ctx.provide("jizuoCreationClient", creationClientApi);
   const disposeRemote = await ctx.remote.$mount(TYPERT_REMOTE);
   const rawHostRemote = ctx.get("remote.jizuo") as JizuoHostRemote | undefined;

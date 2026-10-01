@@ -5,6 +5,7 @@ const GLOBAL_SCOPE = "@global";
 const listeners = new Set<() => void>();
 let revision = 0;
 let available: Set<WorkspacePluginId> | null = null;
+let hostManaged = false;
 function emit() { revision++; for (const listener of listeners) listener(); }
 export function subscribeWorkspacePlugins(listener: () => void) {
   listeners.add(listener);
@@ -46,13 +47,14 @@ export function useWorkspacePlugins() {
 }
 
 export function isBuiltinPluginEnabled(id: WorkspacePluginId): boolean {
-  return read(GLOBAL_SCOPE)[id] !== false;
+  // Native DSH already owns the master switch; legacy local flags must not veto it.
+  return hostManaged || read(GLOBAL_SCOPE)[id] !== false;
 }
 export function setBuiltinPluginEnabled(id: WorkspacePluginId, enabled: boolean) {
   setWorkspacePluginEnabled(GLOBAL_SCOPE, id, enabled);
 }
 
-export function trackWorkspacePluginAvailability() { available = new Set(); emit(); }
+export function trackWorkspacePluginAvailability(options: { hostManaged?: boolean } = {}) { hostManaged = options.hostManaged === true; available = new Set(); emit(); }
 export function setWorkspacePluginAvailable(id: WorkspacePluginId, enabled: boolean) {
   if (available === null) return;
   if (enabled) available.add(id); else available.delete(id);
