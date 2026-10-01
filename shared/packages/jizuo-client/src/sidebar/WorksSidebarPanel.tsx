@@ -730,11 +730,10 @@ export function WorksSidebarPanel({
                         }}
                       >
 
-                        <span className="jz-tree-kind work"><Icon name="folder" /></span>
+                        <span className="jz-tree-kind work" title={work.projectKind === "video" ? "视频项目" : "小说项目"} aria-hidden="true"><ActionIcon name={work.projectKind === "video" ? "video" : "book"} className="jz-icon" /></span>
                         <span className="jz-tree-title">{work.title}</span>
                       </button>
                       {workspaceMode && sessionNavigation && <IconButton icon="chat" label={`在${work.title}新建对话`} className="jz-row-action jz-work-new-chat" disabled={sessionBusy} onClick={() => { void openConversation(work.id, true); }} />}
-                      <span className="jz-project-tag" data-kind={work.projectKind ?? "novel"}>{work.projectKind === "video" ? "视频" : "小说"}</span>
                       {renderActions(target, videoMode || !writingEnabled ? undefined : () => { beginCreate({ kind: "volume", workId: work.id }); }, videoMode || !writingEnabled ? undefined : "新建分卷")}
                     </>
                   )}

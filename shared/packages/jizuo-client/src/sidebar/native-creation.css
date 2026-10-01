@@ -47,6 +47,10 @@
 [data-surface="native-workspaces"] .jz-tree-row:is(:hover, :focus-within) .jz-tree-actions { opacity: 1; pointer-events: auto; }
 [data-surface="native-workspaces"] .jz-tree-row:not(:hover):not(:focus-within) .jz-tree-actions { opacity: 0; }
 [data-surface="native-workspaces"] .jz-tree-row:is(:hover, :focus-within) > .jz-tree-main { padding-right: 60px; }
+[data-surface="native-workspaces"] .jz-tree-chapter:is(:hover, :focus-within) > .jz-tree-main { padding-right: 36px; }
+[data-surface="native-workspaces"] .jz-tree-actions .jz-row-action { appearance: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--dsw-radius-sm, 6px); background: transparent; color: var(--dsw-alias-label-secondary, #626974); }
+[data-surface="native-workspaces"] .jz-tree-actions .jz-row-action:hover { background: var(--dsw-alias-interactive-bg-hover, #e7e9ec); color: var(--dsw-alias-label-primary, #202326); }
+[data-surface="native-workspaces"] .jz-tree-actions .jz-row-action:focus-visible { outline: 2px solid var(--dsw-focus-ring-color, #4d6bfe); outline-offset: -2px; }
 [data-surface="native-workspaces"] .jz-tree-kind { width: 20px; height: 20px; background: transparent; }
 [data-surface="native-workspaces"] .jz-work-files .jz-work-section-heading > button { appearance: none; border: 0; padding: 4px 8px; border-radius: var(--dsw-radius-sm, 6px); background: transparent; color: inherit; font: inherit; cursor: pointer; }
 [data-surface="native-workspaces"] .jz-work-files .jz-work-section-heading > button:hover { background: var(--dsw-alias-interactive-bg-hover, #e7e9ec); }
