@@ -5,7 +5,7 @@ import type { JizuoService } from "./service.ts";
 import { DreamEvidenceError, type DreamModelFactory, type DreamExtraction } from "./dream-model.ts";
 import { DreamCheckpointError, dreamCheckpointPath, readDreamCheckpoint, writeDreamJson, type DreamCheckpoint } from "./dream-checkpoint.ts";
 import { readDreamChapterSnapshot, type DreamChapterSnapshot } from "./dream-report.ts";
-import { mapTypedChapterMemoryFacts } from "./workflow/nodeExecutors.ts";
+import { mapTypedChapterMemoryFacts } from "./workflow/memoryFacts.ts";
 import { describeDreamError, DreamProcessingError, DreamCapacityError } from "./dream-errors.ts";
 import { DreamConversationRecorder, readDreamConversations } from "./dream-conversation.ts";
 

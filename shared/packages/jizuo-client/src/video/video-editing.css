@@ -637,3 +637,10 @@
 .jz-text-resize { position: absolute; top: 50%; width: 8px; height: 18px; border: 1px solid #167b83; background: white; border-radius: 3px; transform: translateY(-50%); cursor: ew-resize; touch-action: none; -webkit-text-stroke: 0; }
 .jz-text-resize-left { left: -9px; }
 .jz-text-resize-right { right: -9px; }
+
+.jz-video-runtime { font-size: 12px; font-weight: 400; max-width: min(560px, 85vw); }
+.jz-video-runtime summary { cursor: pointer; }
+.jz-video-runtime-content { padding: 10px; border: 1px solid var(--dsw-alias-border-l1, #d8dce1); border-radius: 8px; background: var(--dsw-alias-bg-base, #fff); }
+.jz-video-runtime-content p { margin: 6px 0; line-height: 1.6; }
+.jz-video-runtime-content code { overflow-wrap: anywhere; white-space: normal; }
+.jz-video-runtime-content [role="alert"] { color: var(--dsw-alias-state-error, #b42318); }

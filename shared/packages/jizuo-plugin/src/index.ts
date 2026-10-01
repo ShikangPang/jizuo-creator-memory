@@ -45,6 +45,7 @@ import { MediaSettingsRepository } from "./video/settings.ts";
 import { JizuoService } from "./service.ts";
 import { JizuoRemoteService } from "./remote-service.ts";
 import { HarnessModelOutputSettings } from "./model-output-settings.ts";
+import { createNativeSkillRegistrar } from "./native-skills.ts";
 import { upgradeBuiltinWorkflowSkills } from "./skills.ts";
 import { type ToolsContext } from "./tools.ts";
 import { JizuoDomainNodeAdapter } from "./workflow/domainAdapter.ts";
@@ -104,6 +105,7 @@ async function applyCreationRuntime(ctx: Context, config: ConfigShape): Promise<
   // Ordinary chat loads skills without starting a chapter workflow. Finish the
   // byte-checked upgrade before registering services that can accept a chat.
   await upgradeBuiltinWorkflowSkills(resolveWorkflowResourceRoot(), config.settingsRoot);
+  const registerSkills = await createNativeSkillRegistrar(resolveWorkflowResourceRoot(), config.settingsRoot);
   const vault = new HarnessAccountTokenVault({
     resolve: async (ref) => ctx.credentials.resolve(credentialRef(ref)),
     set: async (ref, value) => ctx.credentials.set(credentialRef(ref), value),
@@ -191,7 +193,7 @@ async function applyCreationRuntime(ctx: Context, config: ConfigShape): Promise<
   if (config.hostUi !== "native") ctx.inject(["tools"], (toolsContext) => {
     registerChatMediaTools(toolsContext as unknown as ToolsContext, service.chatMedia!, () => ctx.get("attachments") as ChatAttachmentReader | undefined);
   });
-  ctx.provide("jizuoCreationHost", { service, apis: remoteService.creationApis, workflowChapterWrites: workflow?.workflowChapterWrites });
+  ctx.provide("jizuoCreationHost", { registerSkills, service, apis: remoteService.creationApis, workflowChapterWrites: workflow?.workflowChapterWrites });
   registerRuntimeCapabilityProbe(ctx, { workflowEnabled: workflow !== undefined });
 }
 

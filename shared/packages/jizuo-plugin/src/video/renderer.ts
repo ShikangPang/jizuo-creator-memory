@@ -44,7 +44,7 @@ export async function renderVideo(input: RenderVideoInput): Promise<RenderVideoR
   const episode = project.episodes.find((item) => item.id === episodeId)!;
   const layout = timelineLayout(episode.timeline);
   if (layout.clips.length === 0) throw new Error("时间线没有画面片段，请先生成粗剪");
-  const [ffmpeg, ffprobe] = await Promise.all([discoverMediaExecutable("ffmpeg", { requireAss: Boolean(episode.texts?.length), signal }), discoverMediaExecutable("ffprobe")]);
+  const [ffmpeg, ffprobe] = await Promise.all([discoverMediaExecutable("ffmpeg", { requireAss: true, signal }).catch(() => discoverMediaExecutable("ffmpeg", { requireAss: Boolean(episode.texts?.length), signal })), discoverMediaExecutable("ffprobe")]);
   const outputPath = resolve(input.outputPath);
   const temp = await mkdtemp(join(dirname(outputPath), ".jizuo-render-"));
   try {

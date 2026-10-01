@@ -168,6 +168,7 @@ export interface JizuoHostRemote extends AccountHostRemote {
   roughCutVideo(request: import("@jizuo/contracts").RoughCutVideoInput): Promise<RemoteAnswer<import("@jizuo/contracts").VideoProject>>;
   getVideoClipFrames(request: import("@jizuo/contracts").GetVideoClipFramesInput): Promise<RemoteAnswer<import("@jizuo/contracts").VideoClipFrames>>;
   editVideoTimeline(request: import("@jizuo/contracts").EditVideoTimelineInput): Promise<RemoteAnswer<import("@jizuo/contracts").VideoProject>>;
+  checkVideoRuntime?(request: Record<string, never>): Promise<RemoteAnswer<import("@jizuo/contracts").VideoRuntimeStatus>>;
   exportVideo(request: import("@jizuo/contracts").ExportVideoInput): Promise<RemoteAnswer<import("@jizuo/contracts").VideoProject>>;
   generateVideoSpeech(request: import("@jizuo/contracts").GenerateSpeechInput): Promise<RemoteAnswer<import("@jizuo/contracts").VideoProject>>;
   getSpeechSettings(request: Record<string, never>): Promise<RemoteAnswer<import("@jizuo/contracts").SpeechSettingsView>>;
@@ -409,6 +410,7 @@ export function jizuoRemote(remote: JizuoHostRemote): JizuoContentRemote & Memor
     roughCutVideo: async (input) => unwrap(await remote.roughCutVideo(input), "剪辑配音操作失败"),
     getVideoClipFrames: async (input) => unwrap(await remote.getVideoClipFrames(input), "提取首末帧失败"),
     editVideoTimeline: async (input) => unwrap(await remote.editVideoTimeline(input), "剪辑配音操作失败"),
+    ...(remote.checkVideoRuntime ? { checkVideoRuntime: async () => unwrap(await remote.checkVideoRuntime!({}), "视频导出环境检查失败") } : {}),
     exportVideo: async (input) => unwrap(await remote.exportVideo(input), "剪辑配音操作失败"),
     generateVideoSpeech: async (input) => unwrap(await remote.generateVideoSpeech(input), "剪辑配音操作失败"),
     getSpeechSettings: async () => unwrap(await remote.getSpeechSettings({}), "配音设置加载失败"),

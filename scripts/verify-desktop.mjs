@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { runInNewContext } from 'node:vm';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -20,13 +20,14 @@ process.env.JIZUO_RUNTIME_VERIFICATION = '0';
 for (const name of ['JIZUO_NSPOX_ACCESS_TOKEN', 'JIZUO_NSPOX_REFRESH_TOKEN', 'JIZUO_NSPOX_EXPIRES_AT']) delete process.env[name];
 const profileDir = join(home, 'profiles', 'verification');
 const modules = join(profileDir, 'node_modules');
-let ctx;
+let ctx, verificationResult;
 const deadline = setTimeout(() => { console.error(`Official runtime verification timed out; temporary profile: ${home}`); process.exit(124); }, 90000);
 try {
   await mkdir(join(modules, '@jizuo'), { recursive: true });
   const runtimeManifest = JSON.parse(await readFile(join(runtime, 'package.json'), 'utf8'));
   assert.equal(runtimeManifest.version, '0.2.0-rc.2');
-  for (const scope of ['@deepseek-ai']) await symlink(join(runtime, 'node_modules', scope), join(modules, scope));
+  // Match desktop resolution: no profile-level @deepseek-ai dependency symlinks.
+  await assert.rejects(access(join(modules, '@deepseek-ai')), { code: 'ENOENT' });
   const features = process.env.JIZUO_VERIFY_FEATURES?.split(',') ?? ['writing', 'video', 'memory', 'account', 'media-models'];
   assert.ok(features.length > 0 && new Set(features).size === features.length && features.every(feature => ['writing', 'video', 'memory', 'account', 'media-models'].includes(feature)), 'invalid feature selection');
   const specs = [
@@ -105,6 +106,72 @@ try {
   const original = ctx.get('jizuoCreationHost');
   assert.ok(original, 'creation host must activate');
   assert.equal(original.service.isAccountEnabled(), features.includes('account'));
+  const skillOwners = {
+    'novel-workflow': ['writing'], 'worldbuilding': ['writing'], 'style': ['writing'],
+    'novel-video': ['video'], 'novel-memory': ['memory'],
+    'creative-prompt': ['video', 'media-models'],
+    'h3-prompt-writing': ['video', 'media-models'],
+    'minimax-story-visuals': ['video', 'media-models'],
+  };
+  const verifySkills = async activeFeatures => {
+    const skills = ctx.get('skills');
+    assert.ok(skills, 'official skill registry must activate');
+    const names = (await skills.list({ cwd: home })).map(skill => skill.name);
+    for (const [name, owners] of Object.entries(skillOwners)) {
+      const expected = owners.some(owner => activeFeatures.includes(owner));
+      assert.equal(names.includes(name), expected, `${name}: list visibility must follow its active owners`);
+      const skill = await skills.get(name, { cwd: home });
+      if (expected) {
+        assert.equal(skill?.name, name, `${name}: get must resolve the registered provider`);
+        assert.ok(skill.content?.trim(), `${name}: body must be readable`);
+      } else assert.equal(skill, undefined, `${name}: disabled skill must not remain callable`);
+    }
+  };
+  await verifySkills(features);
+  const toolSchemas = ctx.get('tools').schemas();
+  const assertObjectInput = name => {
+    const schema = toolSchemas.find(tool => tool.name === name)?.parameters;
+    assert.ok(schema?.required?.includes('input'), `${name}: input must be required`);
+    assert.equal(schema.properties.input.type, 'object', `${name}: input must publish object shape`);
+    return schema.properties.input;
+  };
+  if (features.includes('video')) {
+    const read = assertObjectInput('jizuo_read_video_project');
+    assert.equal(read.properties.workId.type, 'string');
+    const update = assertObjectInput('jizuo_update_video_episode');
+    assert.equal(update.properties.expectedRevision.type, 'integer');
+    assert.equal(update.properties.patch.properties.shots.items.properties.durationSec.type, 'number');
+  }
+  if (features.includes('media-models')) {
+    const media = assertObjectInput('jizuo_generate_chat_media');
+    assert.equal(media.properties.prompt.type, 'string');
+    assert.ok(media.required.includes('prompt'));
+    assertObjectInput('jizuo_list_chat_media');
+  }
+  const service = original.service;
+  const novel = await service.createWork({ title: '推广验收小说', projectKind: 'novel' });
+  const volume = await service.createVolume({ workId: novel.id, title: '第一卷' });
+  const chapter = await service.createChapter({ workId: novel.id, volumeId: volume.id, title: '验收章节' });
+  const target = { workId: novel.id, volumeId: volume.id, chapterId: chapter.id };
+  const content = '仅用于隔离验收的正文。';
+  await service.replaceChapter({ ...target, expectedRevision: chapter.revisionToken, content });
+  assert.equal((await service.readChapter(target)).content, content);
+  await assert.rejects(service.replaceChapter({ ...target, expectedRevision: chapter.revisionToken, content: '过期覆盖' }), { code: 'revision_conflict' });
+  const video = await service.createWork({ title: '推广验收视频', projectKind: 'video' });
+  await assert.rejects(service.createVolume({ workId: video.id, title: '错误的卷' }));
+  const episodeProject = await service.video.createEpisode({ workId: video.id, title: '第一集', sourceChapters: [{ sourceWorkId: novel.id, volumeId: volume.id, chapterId: chapter.id }] });
+  assert.equal(episodeProject.episodes[0].sourceChapters[0].sourceWorkId, novel.id);
+  assert.equal((await service.renameWork({ workId: novel.id, title: '验收重命名' })).title, '验收重命名');
+  const trash = await service.moveToTrash({ kind: 'work', workId: video.id });
+  assert.equal((await service.listWorks()).some(work => work.id === video.id), false);
+  assert.equal((await service.readChapter(target)).content, content, 'trashing independent video must preserve its novel source');
+  await service.restoreFromTrash({ workId: video.id, trashId: trash.trashId });
+  assert.equal((await service.video.read(video.id)).episodes.length, 1);
+  assert.equal((await service.readChapter(target)).content, content);
+  const dream = await service.dreamHost.report(novel.id);
+  assert.notEqual(dream.status.state, 'error', JSON.stringify(dream.status));
+  assert.equal(dream.status.lastError, undefined, 'dream worker must load and serve its report without runtime errors');
+  console.error('[verify] skills, structured tools, isolated content and dream worker ready');
   const mediaTool = () => ctx.get('tools').get('jizuo_generate_chat_media');
   assert.equal(Boolean(mediaTool()), features.includes('media-models'), 'chat media tools must belong to the media plugin');
   for (let index = 0; index < features.length; index++) {
@@ -112,6 +179,7 @@ try {
     const result = await manager.setBundleEnabled(selected[index], false);
     assert.equal(result.application, 'applied', JSON.stringify(result));
     await ctx.loader.await();
+    await verifySkills(features.slice(index + 1));
     assert.ok(graph.graph().entries.some(entry => entry.id === '@deepseek-ai/dsh-client-ui-sidebar'));
     assert.equal(ctx.get(serviceName(features[index])), undefined);
     if (features[index] === 'account') assert.equal(original.service.isAccountEnabled(), false);
@@ -125,11 +193,19 @@ try {
     assert.equal(result.application, 'applied', JSON.stringify(result));
     await ctx.loader.await();
   }
+  await verifySkills(features);
   assert.ok(ctx.get('jizuoCreationHost'));
   assert.notEqual(ctx.get('jizuoCreationHost'), original);
   for (const feature of features) assert.ok(ctx.get(serviceName(feature)));
-  console.log(JSON.stringify({ result: 'passed', runtime: runtimeManifest.version, node: process.version, version, bundles: actual.map(({ name, meta }) => ({ name, title: meta.title, description: meta.description, hasIcon: Boolean(meta.icon) })), checks: ['official manager metadata', 'official browser manifest consumption', 'HTTP batch factory registration', 'native sidebar retained', 'client module deduplication', 'independent disable', 'shared runtime retention', 'final-owner disposal', 'reenable all'] }, null, 2));
+  verificationResult = { result: 'passed', runtime: runtimeManifest.version, node: process.version, version, bundles: actual.map(({ name, meta }) => ({ name, title: meta.title, description: meta.description, hasIcon: Boolean(meta.icon) })), checks: ['official manager metadata', 'official browser manifest consumption', 'HTTP batch factory registration', 'native sidebar retained', 'client module deduplication', 'independent disable', 'shared runtime retention', 'final-owner disposal', 'reenable all', 'skills list/get and owner lifecycle', 'structured media tool input', 'isolated content revision conflict', 'independent video source', 'rename/trash/restore', 'dream worker report', 'awaited disposal and clean temporary profile removal'] };
 } finally {
   try { await ctx?.fiber.dispose(); }
-  finally { clearTimeout(deadline); await rm(home, { recursive: true, force: true }); }
+  finally {
+    clearTimeout(deadline);
+    // No retry masks a background write racing disposal (ENOTEMPTY must fail).
+    await rm(home, { recursive: true, force: true });
+    await assert.rejects(access(home), { code: 'ENOENT' });
+  }
 }
+
+console.log(JSON.stringify(verificationResult, null, 2));

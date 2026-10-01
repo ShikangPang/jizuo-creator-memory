@@ -1,3 +1,4 @@
+import { RowMenu } from "./RowMenu.tsx";
 import { volumeTreeKey, WritingTree } from "../plugins/WritingTree.tsx";
 import { ProjectFeatures } from "../plugins/ProjectFeatures.tsx";
 import { isBuiltinPluginEnabled, isWorkspacePluginAvailable, useWorkspacePlugins } from "../plugins/preferences.ts";
@@ -134,6 +135,7 @@ export function WorksSidebarPanel({
   };
   const [createTarget, setCreateTarget] = useState<CreateTarget | null>(null);
   const [createTitle, setCreateTitle] = useState("");
+  const menuAnchor = useRef<HTMLElement | null>(null);
   const [menuTarget, setMenuTarget] = useState<TreeTarget | null>(null);
   const [renameTarget, setRenameTarget] = useState<TreeTarget | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
@@ -605,8 +607,8 @@ export function WorksSidebarPanel({
     </form>
   );
 
-  const renderMenu = (target: TreeTarget, onCreate?: () => void, createLabel?: string) => menuTarget !== null && targetKey(menuTarget) === targetKey(target) && (
-    <div className="jz-row-menu" role="menu" aria-label={`${target.title}操作`}>
+  const renderMenu = (target: TreeTarget, onCreate?: () => void, createLabel?: string) => menuTarget !== null && targetKey(menuTarget) === targetKey(target) && menuAnchor.current && (
+    <RowMenu anchor={menuAnchor.current} label={`${target.title}操作`} close={() => setMenuTarget(null)}>
       {onCreate && createLabel && <MenuAction icon={target.kind === "work" ? "folder" : "document"} label={createLabel} type="button" role="menuitem" onClick={() => { setMenuTarget(null); onCreate(); }} />}
       {target.kind === "work" && <>
         {pluginEnabled(target.workId, "writing") && remote.searchWork && <MenuAction icon="search" label={"全书搜索"} type="button" role="menuitem" onClick={() => { setMenuTarget(null); setWorkTool({ ...target, mode: "search" }); }} />}
@@ -624,7 +626,7 @@ export function WorksSidebarPanel({
       )}
       <MenuAction icon="edit" label={"重命名" + (kindName(target.kind))} type="button" role="menuitem" onClick={() => { beginRename(target); }} />
       <MenuAction icon="delete" label={"删除" + (kindName(target.kind))} type="button" role="menuitem" className="danger" onClick={() => { void beginDelete(target); }} />
-    </div>
+    </RowMenu>
   );
 
   const renderActions = (target: TreeTarget, onCreate?: () => void, createLabel?: string) => (
@@ -634,7 +636,9 @@ export function WorksSidebarPanel({
         className="jz-row-action"
         aria-label={`打开“${target.title}”操作菜单`}
         aria-expanded={menuTarget !== null && targetKey(menuTarget) === targetKey(target)}
-        onClick={() => {
+        aria-haspopup="menu"
+        onClick={(event) => {
+          menuAnchor.current = event.currentTarget;
           setMenuTarget((current) => current !== null && targetKey(current) === targetKey(target) ? null : target);
         }}
       >

@@ -1,7 +1,8 @@
 import type {} from "./message-source.js";
 import { renderSkillPrompt } from "../../contracts/src/skill-prompt.ts";
-import { createUserMessage, type GenerateOptions, type StreamChunk } from "@deepseek-ai/dsh-llm";
-import { ChapterMemoryOutputSchemaV2 } from "@jizuo/workflow-runtime";
+import type { GenerateOptions, StreamChunk } from "@deepseek-ai/dsh-llm";
+import { createUserMessage } from "@deepseek-ai/dsh-llm/message";
+import { ChapterMemoryOutputSchemaV2 } from "../../workflow-runtime/src/outputSchemas.ts";
 import { z } from "zod";
 import type { DreamModelSelection } from "@jizuo/memory-domain";
 import { groundTypedMemoryEvidence, MemoryExtractionEvidenceInvalid } from "./workflow/memoryEvidence.ts";

@@ -14,6 +14,7 @@ import { z } from "zod";
 import { ReplaceDesignPromptInput, SaveVideoDesignInput, TagVideoAssetInput, ExtractVideoDesignsInput, JizuoError, GetVideoProjectInput, CreateVideoEpisodeInput, UpdateVideoEpisodeInput } from "@jizuo/contracts";
 import { AdaptVideoEpisodeInput, ReplaceVideoPromptInput } from "../../contracts/src/video-authoring.ts";
 import type { ToolsContext } from "../../writing-plugin/src/tools.ts";
+import { toolInputSchema, parseToolInput, withToolInputRepair } from "../../writing-plugin/src/tool-input-schema.ts";
 import type { JizuoService } from "../../jizuo-plugin/src/service.ts";
 
 
@@ -21,8 +22,8 @@ import type { JizuoService } from "../../jizuo-plugin/src/service.ts";
 export function registerVideoTools(ctx: ToolsContext, service: JizuoService & {videoAuthoring?: import("../../jizuo-plugin/src/video/authoring.ts").VideoAuthoringService}): void {
   const register = <T>(name:string,description:string,schema:z.ZodType<T>,execute:(input:T,signal:AbortSignal,exec:Parameters<ToolDefinition["execute"]>[1])=>Promise<unknown>,readOnly=false) => {
     const definition=defineTool({
-      name, description: renderSkillPrompt("media-tool-1",{v0:String(description),v1:String(JSON.stringify(z.toJSONSchema(schema)))}),
-      parameters: { input: { type: "json", required: true, description: MEDIA_PROMPT_RULES["media-tool-2"] } },
+      name, description: renderSkillPrompt("media-tool-1",{v0:String(description),v1:String(JSON.stringify(z.toJSONSchema(schema, { io: "input" })))}),
+      parameters: { input: toolInputSchema(schema, MEDIA_PROMPT_RULES["media-tool-2"]) },
       // render feeds the model; presentResult is only the compact UI card.
       output: { schema: { type: "json" }, render: (_args, value) => [{type:"text" as const,text:JSON.stringify(value)}] },
       presentResult: (_args, result) => result.isError ? undefined : {
@@ -35,28 +36,18 @@ export function registerVideoTools(ctx: ToolsContext, service: JizuoService & {v
         const header=agent?.session.header as {origin?:string;delegationDepth?:number}|undefined;
         const depth=(agent?.options as {subagentDepth?:number}|undefined)?.subagentDepth??0;
         if(!readOnly&&(depth>0||(header?.delegationDepth??0)>0||header?.origin==="subagent"))throw new JizuoError("denied","视频修改和生成任务必须由主代理执行");
-        const parsed=schema.safeParse(args.input);
-        if(!parsed.success) {
-          const wrapped = args.input !== null && typeof args.input === "object" && !Array.isArray(args.input);
-          const issues = parsed.error.issues.map(issue => {
-            let actual: unknown = args.input;
-            for (const key of issue.path) actual = actual !== null && typeof actual === "object" ? (actual as Record<PropertyKey, unknown>)[key] : undefined;
-            const received = actual === undefined ? "缺失" : actual === null ? "null" : typeof actual === "object" ? Array.isArray(actual) ? "数组" : "对象" : JSON.stringify(actual).slice(0, 120);
-            return {path:["input", ...issue.path].join("."),received,message:issue.message};
-          });
-          throw new JizuoError("model_repair",`${name} 参数校验失败：${wrapped ? "input 包装正确，请修正以下字段。" : "业务参数必须放在 input 对象内，不能传字符串或数组。"}${issues.map(issue => `${issue.path}（当前值：${issue.received}）：${issue.message}`).join("；")}。只修正报错字段，保留其他已确认内容。`,{issues});
-        }
-        const data=parsed.data as {workId?:string};
+        const parsed=parseToolInput(schema,args.input,name);
+        const data=parsed as {workId?:string};
         if(data.workId?.startsWith("chat_")) {
           const sessionId=exec.agent?.session.id;
           if(!sessionId || !(await service.chatMediaRepository.listSpaces(sessionId)).includes(data.workId))throw new JizuoError("denied","不能读取或修改其他会话的媒体");
         }
-        const result = await execute(parsed.data,exec.signal,exec);
+        const result = await execute(parsed,exec.signal,exec);
         const projected = result && typeof result === "object" && "schemaVersion" in result && "episodes" in result ? projectVideoForClient(result as import("@jizuo/contracts").VideoProject) : result;
         return JSON.parse(JSON.stringify(projected)) as never;
       },
     });
-    ctx.tools.register(definition as ToolDefinition);
+    ctx.tools.register(withToolInputRepair(definition as ToolDefinition, schema));
   };
   register("jizuo_read_video_project",MEDIA_PROMPT_RULES["media-tool-3"],GetVideoProjectInput,input=>service.video.read(input.workId),true);
   register("jizuo_read_video_episode_sources", MEDIA_PROMPT_RULES["media-tool-episode-sources"], UpdateVideoEpisodeInput.pick({workId:true,episodeId:true}).extend({includeContent:z.boolean().optional()}), (input,signal)=>readEpisodeSources(service,input,signal), true);

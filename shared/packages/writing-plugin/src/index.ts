@@ -5,6 +5,7 @@ export const name = "jizuo-writing";
 export const inject = ["jizuoCreationHost", "tools"];
 export function apply(ctx: Context) {
   const runtime = ctx.get("jizuoCreationHost") as CreationHostRuntime;
+  runtime.registerSkills?.(ctx, "writing");
   ctx.provide("jizuoWritingApi", runtime.apis.writing);
   registerJizuoTools(ctx, runtime.service, runtime.workflowChapterWrites, "writing");
 }

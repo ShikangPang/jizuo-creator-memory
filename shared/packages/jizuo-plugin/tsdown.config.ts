@@ -64,7 +64,7 @@ export function inlineCssPlugin(pluginId = PLUGIN_ID) {
 export default defineConfig([
   {
     name: "jizuo-plugin/host",
-    entry: { index: "src/index.ts", "dream-worker": "src/dream-worker.ts" },
+    entry: { index: "src/index.ts" },
     outDir: "lib",
     format: "esm",
     platform: "node",
@@ -74,6 +74,20 @@ export default defineConfig([
     clean: true,
     deps: hostDependencies(),
     plugins: [publicWorkflowBoundary()],
+  },
+  {
+    // A fork has no Desktop host resolver. Keep the worker independent of host chunks.
+    name: "jizuo-plugin/dream-worker",
+    entry: { "dream-worker": "src/dream-worker.ts" },
+    outDir: "lib",
+    format: "esm",
+    platform: "node",
+    target: "es2024",
+    fixedExtension: false,
+    dts: false,
+    clean: false,
+    deps: { neverBundle: [/^node:/, /^better-sqlite3$/], alwaysBundle: (id: string) => id.startsWith("node:") || id === "better-sqlite3" ? undefined : true, onlyBundle: false },
+    outputOptions: { codeSplitting: false },
   },
   {
     name: "jizuo-plugin/typert",

@@ -1,3 +1,4 @@
+import { VideoExportControl } from "./VideoExportControl.tsx";
 import { userErrorMessage } from "@jizuo/contracts";
 import { IconButton } from "../ui/IconButton.tsx";
 import { useEditorPreference, validLayout, validPanelWidths, validTimelineHeight } from "./editor-preferences.ts";
@@ -369,7 +370,7 @@ export function VideoEditingPanel({ project, episode, remote, active, selectedCl
       {remote.restoreVideoTimeline && <><button className="jz-video-icon-button" aria-label="撤销" type="button" disabled={busy || !undo.current.length} title="撤销 · Cmd/Ctrl+Z" onClick={() => { void travel("undo"); }}><VideoToolIcon name="undo" /></button><button className="jz-video-icon-button" aria-label="重做" type="button" disabled={busy || !redo.current.length} title="重做 · Cmd/Ctrl+Shift+Z" onClick={() => { void travel("redo"); }}><VideoToolIcon name="redo" /></button></>}
       {textDraft && <button className="jz-video-icon-button" aria-label="保存文本" type="submit" form={`jz-video-text-${episode.id}`} disabled={shared.busy} title="保存文本 · Cmd/Ctrl＋S"><VideoToolIcon name="save" /></button>}
       {remote.roughCutVideo && <button className="jz-video-icon-button" aria-label={episode.timeline.length ? "按镜头重新组装（重置剪辑）" : "按镜头组装粗剪"} title={episode.timeline.length ? "按镜头重新组装（重置剪辑）" : "按镜头组装粗剪"} type="button" disabled={busy || unresolvedSources.length > 0} onClick={() => { if (episode.timeline.length) setConfirmRebuild(true); else void assemble(); }}><VideoToolIcon name="reset" /></button>}
-      {remote.exportVideo && <button title="导出 MP4" className="jz-video-icon-button" aria-label="导出 MP4" type="button" disabled={busy || !layout.clips.length || jobs.some((job) => job.kind === "export" && (job.status === "running" || job.status === "queued"))} onClick={() => withSavedText(() => { void run(() => remote.exportVideo!({ workId: project.workId, episodeId: episode.id, expectedRevision: currentProject.current.revision, aspectRatio })); })}><VideoToolIcon name="export" /></button>}
+      {remote.exportVideo && <VideoExportControl check={remote.checkVideoRuntime} styled={Boolean(episode.texts?.length)} wrap={(episode.texts ?? []).some(text => text.style.width !== undefined)} disabled={busy || !layout.clips.length || jobs.some((job) => job.kind === "export" && (job.status === "running" || job.status === "queued"))} onExport={() => withSavedText(() => { void run(() => remote.exportVideo!({ workId: project.workId, episodeId: episode.id, expectedRevision: currentProject.current.revision, aspectRatio })); })} />}
 
     </div></div>
     {confirmRebuild && <div className="jz-editing-confirm" ref={rebuildConfirmation} tabIndex={-1} role="group" aria-label="确认重新组装">

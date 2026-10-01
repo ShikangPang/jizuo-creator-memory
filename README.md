@@ -7,17 +7,17 @@
 支持 **DeepSeek Harness Desktop 0.2.0-rc.2**。在左侧「插件」→「添加插件」粘贴下面这一行，确认来源后安装：
 
 ```text
-https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.17/jizuo-memory-plugin-0.3.17.tgz
+https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.18/jizuo-memory-plugin-0.3.18.tgz
 ```
 
-只填安装包地址，不要填整个安装命令。安装完成后「已安装」中显示「即作记忆」，可分别启用、关闭、配置或卸载。共享核心已包含在安装包中，自动加载，不需要另装即作桌面端或手动安装核心插件。保留 Harness 原有新会话、插件与工作区入口；创作项目统一显示在工作区区域，小说和视频以类型标签区分，不再提供独立的创作面板。
+只填安装包地址，不要填整个安装命令。安装完成后「已安装」中显示「即作记忆」，可分别启用、关闭、配置或卸载。共享核心已包含在安装包中，自动加载，不需要另装即作桌面端或手动安装核心插件。保留 Harness 原有新会话、插件与工作区入口；创作项目统一显示在工作区区域，小说和视频以前置图标区分，不再提供独立的创作面板。
 
 关闭插件不会删除项目。卸载任一创作插件后，请重启 Harness，以刷新共享组件路径；单纯启停不需要重启。关闭一个插件不会关闭其他仍启用的创作插件。五个插件分别安装、启停。媒体模型提供图片/视频服务配置和聊天生成工具，不要求安装视频项目插件；即作账号提供浏览器登录和账号模型。停用账号保留凭据，退出账号才清理即作凭据；第三方媒体密钥不受影响。
 
 也可使用 Desktop 菜单安装的 dsh 命令：
 
 ```sh
-dsh plugin --profile desktop add https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.17/jizuo-memory-plugin-0.3.17.tgz
+dsh plugin --profile desktop add https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.18/jizuo-memory-plugin-0.3.18.tgz
 ```
 
 源码克隆后运行 `node scripts/install.mjs --all` 一次安装五个插件，默认 desktop；Web 用户显式传 `--profile web`。脚本严格检查宿主版本。不要用旧版全局 dsh 命令安装到新版 Desktop，也不要绕过兼容检查。
@@ -27,6 +27,12 @@ dsh plugin --profile desktop add https://github.com/ShikangPang/jizuo-creator-me
 小说与视频统一显示在工作区列表，创建时选择类型，使用独立项目及目录。已有项目按真实目录关联 Harness 工作区，不自动创建空会话。视频通过作品 ID、章节和版本引用小说；视频项目的编辑和删除不会删除源小说。旧混合作品保留兼容读取，不自动迁移或删除。模型由 Harness 配置，图片/视频模型调用可能由服务商计费。
 
 公开包不提供旧章节工作流及其原生 SQLite 扩展；请使用普通创作对话，不要开启 chapterWorkflowEnabled。
+
+## 视频导出环境
+
+视频导出需要 FFmpeg 和 ffprobe，并需要 H.264、AAC 编码器；字幕烧录还需要 libass。插件不捆绑这些系统程序。剪辑页提供环境检查与安装说明，缺失能力会在导出前提示。macOS 可安装 Homebrew 的 ffmpeg-full；Windows 可安装包含 FFmpeg/ffprobe 的发行包并加入 PATH。安装后重新检查。
+
+本版兼容目标是 Desktop 0.2.0-rc.2；尚不承诺其他宿主版本及 Windows 桌面完整验收。自动化 CI 检查源码构建与发布包完整性，真实 Desktop 启停、技能、项目数据和后台进程由发布前隔离验收脚本检查；媒体服务商真实计费生成需另外验收。
 
 ## 开发
 

@@ -5,6 +5,7 @@ export const name = "jizuo-video";
 export const inject = ["jizuoCreationHost", "tools"];
 export function apply(ctx: Context) {
   const runtime = ctx.get("jizuoCreationHost") as CreationHostRuntime;
+  runtime.registerSkills?.(ctx, "video");
   ctx.provide("jizuoVideoApi", runtime.apis.video);
   registerVideoTools(ctx, runtime.service);
 }

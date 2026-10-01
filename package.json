@@ -1,6 +1,6 @@
 {
   "name": "@jizuo/memory-plugin",
-  "version": "0.3.17",
+  "version": "0.3.18",
   "private": true,
   "type": "module",
   "main": "./lib/index.js",
@@ -30,7 +30,7 @@
     }
   },
   "dependencies": {
-    "@jizuo/plugin": "0.3.17"
+    "@jizuo/plugin": "0.3.18"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.4",
@@ -73,6 +73,7 @@
     "build": "node scripts/build.mjs",
     "typecheck": "node scripts/build.mjs typecheck",
     "install:harness": "node scripts/install.mjs",
-    "pack:core": "pnpm --dir core pack"
+    "pack:core": "pnpm --dir core pack",
+    "verify:package": "node --experimental-vm-modules scripts/verify-package.mjs"
   }
 }

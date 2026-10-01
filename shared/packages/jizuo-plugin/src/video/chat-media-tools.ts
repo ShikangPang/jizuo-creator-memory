@@ -2,6 +2,7 @@ import { defineTool, type ToolDefinition } from "@deepseek-ai/dsh-tools";
 import type { Session } from "@deepseek-ai/dsh-session";
 import { z } from "zod";
 import { ChatMediaInput, JizuoError } from "@jizuo/contracts";
+import { toolInputSchema, parseToolInput, withToolInputRepair } from "../../../writing-plugin/src/tool-input-schema.ts";
 import type { ToolsContext } from "../tools.ts";
 import type { ChatMediaService, ChatReferenceImage } from "./chat-media-service.ts";
 type ImageRef=Extract<ReturnType<Session["deriveMessages"]>[number]["content"][number],{type:"image"}>["attachment"];
@@ -20,18 +21,18 @@ export function sessionImageReferences(session:Session,reader:ChatAttachmentRead
 }
 export function registerChatMediaTools(ctx:ToolsContext,service:ChatMediaService,attachments:()=>ChatAttachmentReader|undefined):void{
  const register=(name:string,description:string,schema:z.ZodType,run:(input:unknown,exec:Parameters<ToolDefinition["execute"]>[1])=>Promise<unknown>,readOnly=false)=>{
-  ctx.tools.register(defineTool({name,description:`${description}\n业务参数放在 input 对象内。Schema: ${JSON.stringify(z.toJSONSchema(schema))}`,
-   parameters:{input:{type:"json",required:true,description:"工具参数对象"}},
+  ctx.tools.register(withToolInputRepair(defineTool({name,description:`${description}\n业务参数放在 input 对象内。Schema: ${JSON.stringify(z.toJSONSchema(schema, { io: "input" }))}`,
+   parameters:{input:toolInputSchema(schema,"工具参数对象；直接传对象，不能传 JSON 字符串")},
    output:{schema:{type:"json"},render:(_args,value)=>[{type:"text" as const,text:JSON.stringify(value)}]},
    isConcurrencySafe:()=>readOnly,
    execute:async(args,exec)=>{
     exec.signal.throwIfAborted();const session=exec.agent?.session;
     if(!session?.id)throw new JizuoError("denied","此工具只能从当前聊天调用");
     if((exec.agent?.options as {subagentDepth?:number})?.subagentDepth||session.header.origin==="subagent"||(session.header as {delegationDepth?:number}).delegationDepth)throw new JizuoError("denied","聊天媒体任务必须由主代理执行");
-    const parsed=schema.safeParse(args.input);if(!parsed.success)throw new JizuoError("model_repair",`参数不正确：${parsed.error.message}`);
-    return JSON.parse(JSON.stringify(await run(parsed.data,exec))) as never;
+    const parsed=parseToolInput(schema,args.input,name);
+    return JSON.parse(JSON.stringify(await run(parsed,exec))) as never;
    },
-  }) as ToolDefinition);
+  }) as ToolDefinition, schema));
  };
  register("jizuo_generate_chat_media","调用已配置的图片或视频模型，在当前聊天生成一份媒体，不需要作品。用户明确要求或已授权创作任务时直接调用；意图不清先询问；仅讨论提示词不生成。批量先确认数量和用途，先做一份样例。referenceAttachmentIds 来自 jizuo_list_chat_media 的 attachments；referenceAssetIds 来自当前素材空间的历史结果。返回 queued/running 只代表已提交，请查询状态，禁止因等待而重新生成。",ChatMediaInput,async(raw,exec)=>{
   const session=exec.agent!.session;

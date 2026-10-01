@@ -1,4 +1,4 @@
-import { ChapterMemoryOutputSchema, ChapterMemoryOutputSchemaV2 } from "@jizuo/workflow-runtime";
+import { ChapterMemoryOutputSchema, ChapterMemoryOutputSchemaV2 } from "../../../workflow-runtime/src/outputSchemas.ts";
 
 export class MemoryExtractionEvidenceInvalid extends Error {
   readonly code = "memory_evidence_invalid";

@@ -1,3 +1,4 @@
+import { checkVideoRuntime } from "./video/runtime-check.ts";
 import { MemoryRemoteApi } from "../../memory-plugin/src/remote-api.ts";
 import { VideoRemoteApi } from "../../video-plugin/src/remote-api.ts";
 import { WritingRemoteApi } from "../../writing-plugin/src/remote-api.ts";
@@ -69,6 +70,7 @@ export interface WorkflowRemotePort {
 }
 
 export class JizuoRemoteService extends TypertRemoteService {
+  async checkVideoRuntime(_request: Record<string, never>, signal: AbortSignal) { return checkVideoRuntime(signal); }
   async getChatMedia(request:{sessionId:string},signal:AbortSignal) {
     signal.throwIfAborted();
     const id=SessionId(request.sessionId);

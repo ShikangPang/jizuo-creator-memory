@@ -1,3 +1,4 @@
+import { VideoRuntimeStatus } from "@jizuo/contracts";
 import { ChatMediaSessionInput } from "@jizuo/contracts";
 import { GetVideoClipFramesInput, VideoClipFrames } from "@jizuo/contracts";
 import { GetVideoProjectViewInput, VideoProjectView, GetVideoJobUpdatesInput, VideoJobUpdates } from "@jizuo/contracts";
@@ -270,6 +271,7 @@ export const JIZUO_INVOCATIONS: readonly InvocationDescriptor[] = [
   invocation("roughCutVideo", RoughCutVideoInput, VideoProject),
   invocation("getVideoClipFrames", GetVideoClipFramesInput, VideoClipFrames),
   invocation("editVideoTimeline", EditVideoTimelineInput, VideoProject),
+  invocation("checkVideoRuntime", Empty, VideoRuntimeStatus),
   invocation("exportVideo", ExportVideoInput, VideoProject),
   invocation("generateVideoSpeech", GenerateSpeechInput, VideoProject),
   invocation("getSpeechSettings", z.object({}).strict(), SpeechSettingsView),

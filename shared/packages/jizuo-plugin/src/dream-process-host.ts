@@ -9,7 +9,7 @@ import type { DreamModelCatalog } from "./dream-model-catalog.ts";
 import type { JizuoService } from "./service.ts";
 
 export interface DreamHostPort {
-  start(): void; close(): void; touch(workId: string, chapterId?: string): void;
+  start(): void; close(): void | Promise<void>; touch(workId: string, chapterId?: string): void;
   invalidate(workId: string): void; settingsChanged(workId: string): void;
   withWorkMutation<T>(workId: string, operation: () => Promise<T>): Promise<T>;
   status(workId: string): Promise<DreamStatus>; report(workId: string): Promise<DreamWorkReport>;
@@ -30,6 +30,8 @@ export class DreamProcessHost implements DreamHostPort {
   private peer: DreamIpcPeer | undefined;
   private ready: Promise<DreamIpcPeer> | undefined;
   private stopped = false;
+  private closing: Promise<void> | undefined;
+  private readonly handlers = new Set<Promise<unknown>>();
   private failures = 0;
   private restartTimer: ReturnType<typeof setTimeout> | undefined;
   private busyTimer: ReturnType<typeof setInterval> | undefined;
@@ -45,6 +47,7 @@ export class DreamProcessHost implements DreamHostPort {
   private readonly mutationFlights = new Map<string, Promise<unknown>>();
   private readonly currentChapters = new Map<string, string>();
   private readonly writes = new Set<Promise<unknown>>();
+  private readonly usageWrites = new Set<Promise<unknown>>();
   private recovery: Promise<void> = Promise.resolve();
   constructor(private readonly service: JizuoService, private readonly models: Pick<DreamModelCatalog, "describe" | "stream">, private readonly options: DreamProcessOptions) {}
   get processId(): number | undefined { return this.child?.pid; }
@@ -53,14 +56,28 @@ export class DreamProcessHost implements DreamHostPort {
     if (!this.busyTimer) { this.busyTimer = setInterval(() => this.publishBusy(), 250); this.busyTimer.unref(); }
     void this.connect().catch(() => {});
   }
-  close(): void {
-    if (this.stopped) return; this.stopped = true;
+  close(): Promise<void> {
+    if (this.closing) return this.closing;
+    this.stopped = true;
+    this.error = "梦境后台已停止，请重新打开应用；已保存的章节记忆会保留。";
     if (this.restartTimer) clearTimeout(this.restartTimer);
     if (this.busyTimer) clearInterval(this.busyTimer);
     for (const stream of this.streams.values()) stream.controller.abort();
-    this.peer?.event("shutdown");
     const child = this.child;
-    if (child) { const kill = setTimeout(() => child.kill("SIGKILL"), 2000); kill.unref(); child.once("exit", () => clearTimeout(kill)); }
+    const exited = child ? new Promise<void>((resolve) => {
+      if (child.exitCode !== null || child.signalCode !== null) { resolve(); return; }
+      const kill = setTimeout(() => child.kill("SIGKILL"), 2000);
+      child.once("exit", () => { clearTimeout(kill); resolve(); });
+      child.once("error", () => { if (!child.pid) { clearTimeout(kill); resolve(); } });
+    }) : Promise.resolve();
+    this.peer?.event("shutdown");
+    this.closing = (async () => {
+      await exited;
+      await this.ready?.catch(() => {});
+      await this.recovery;
+      await Promise.allSettled([...this.handlers, ...this.writes]);
+    })();
+    return this.closing;
   }
   touch(workId: string, chapterId?: string): void { this.peer?.event("touch", { workId, chapterId }); }
   invalidate(workId: string): void { this.peer?.event("invalidate", { workId }); }
@@ -77,7 +94,11 @@ export class DreamProcessHost implements DreamHostPort {
     this.mutating.add(workId); this.abortWork(workId);
     let peer: DreamIpcPeer | undefined;
     try {
-      if (!this.stopped) { peer = await this.connect(); await peer.call("mutation.begin", { workId }); }
+      if (!this.stopped) {
+        try { peer = await this.connect(); await peer.call("mutation.begin", { workId }); }
+        catch { peer = undefined; await this.close(); }
+      } else { await this.close(); }
+      await Promise.allSettled([...this.writes]);
       return await operation();
     } finally { this.mutating.delete(workId); peer?.event("mutation.end", { workId }); this.invalidate(workId); }
   }
@@ -109,7 +130,7 @@ export class DreamProcessHost implements DreamHostPort {
     return (await this.connect()).call("conversations", target);
   }
   async command(command: DreamCommand, workId?: string): Promise<{ saved: true }> {
-    if (command === "stop_before_exit") { this.close(); return { saved: true }; }
+    if (command === "stop_before_exit") { await this.close(); return { saved: true }; }
     if (command === "pause" || command === "skip_tonight") {
       if (workId) this.abortWork(workId); else for (const stream of this.streams.values()) stream.controller.abort();
     }
@@ -118,12 +139,12 @@ export class DreamProcessHost implements DreamHostPort {
     return peer.call("command", { command, workId });
   }
   private connect(): Promise<DreamIpcPeer> {
-    if (this.stopped) return Promise.reject(new Error("梦境后台已关闭"));
+    if (this.stopped) return Promise.reject(new Error(this.error ?? "梦境后台已停止，请重新打开应用"));
     if (this.ready) return this.ready;
     if (this.restartTimer) { clearTimeout(this.restartTimer); this.restartTimer = undefined; }
     const run = async () => {
       await this.recovery;
-      if (this.stopped) throw new Error("梦境后台已关闭");
+      if (this.stopped) throw new Error(this.error ?? "梦境后台已停止，请重新打开应用");
       const child = fork(this.options.workerPath ?? fileURLToPath(import.meta.resolve("@jizuo/plugin/dream-worker")), [], {
         execPath: process.execPath, execArgv: dreamWorkerExecArgv(process.execArgv), stdio: ["ignore", "ignore", "pipe", "ipc"], serialization: "advanced",
         env: { ...Object.fromEntries(["PATH", "HOME", "TMPDIR", "TEMP", "TMP", "SystemRoot", "WINDIR", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "LANG", "LC_ALL", "NODE_NO_WARNINGS"].flatMap((key) => process.env[key] === undefined ? [] : [[key, process.env[key]!]])), JIZUO_DREAM_WORKER: "1" },
@@ -133,6 +154,7 @@ export class DreamProcessHost implements DreamHostPort {
       child.stderr?.on("data", (chunk: Buffer) => { diagnostic = (diagnostic + chunk.toString("utf8")).slice(-4000); });
       const peer = new DreamIpcPeer(child as DreamIpcTransport, (method, input, signal) => {
         const result = this.handle(method, input, signal);
+        this.handlers.add(result); void result.finally(() => this.handlers.delete(result)).catch(() => {});
         if (method.startsWith("budget.") || method === "commit") {
           this.writes.add(result); void result.finally(() => this.writes.delete(result)).catch(() => {});
         }
@@ -161,14 +183,19 @@ export class DreamProcessHost implements DreamHostPort {
     const cause = diagnostic.split("\n").find((line) => /Error(?:\s|:|\[)/.test(line));
     peer.close(new Error(cause ? `梦境后台加载失败：${cause}` : "梦境后台进程已断开")); if (this.child !== child) return;
     this.child = undefined; this.peer = undefined; this.ready = undefined;
-    this.error = "梦境后台进程已中断，正在恢复；已保存的章节记忆会保留。";
+    this.error = this.stopped
+      ? "梦境后台已停止，请重新打开应用；已保存的章节记忆会保留。"
+      : "梦境后台进程已中断，正在恢复；已保存的章节记忆会保留。";
     for (const stream of this.streams.values()) stream.controller.abort(); this.streams.clear();
-    this.recovery = Promise.allSettled([...this.writes]).then(async () => {
-      await Promise.allSettled([...this.reservations.values()].map(async (request) => {
+    this.recovery = Promise.allSettled([...this.handlers, ...this.writes]).then(async () => {
+      const settlements = await Promise.allSettled([...this.reservations.values()].map(async (request) => {
         const budget = await this.budgetForWork(request.workId); await budget.settleRequest(request.id, undefined, request.date);
+        this.reservations.delete(request.id);
       }));
-      this.reservations.clear();
+      if (settlements.some((result) => result.status === "rejected")) throw new Error("梦境额度尚未完成保存，请稍后重试目录操作。");
     });
+    // Keep the rejection observable by close/connect without an unhandled rejection during idle recovery.
+    void this.recovery.catch(() => {});
     if (!this.stopped && this.failures++ < 3) {
       this.restartTimer = setTimeout(() => { this.restartTimer = undefined; if (!this.ready) this.start(); }, 1000 * 2 ** (this.failures - 1)); this.restartTimer.unref();
     } else if (!this.stopped) this.error = "梦境后台多次启动失败，请点击立即整理重试或重新打开应用。";
@@ -191,7 +218,8 @@ export class DreamProcessHost implements DreamHostPort {
   }
   private trackWrite<T>(write: () => Promise<T>): Promise<T> {
     const pending = Promise.resolve().then(write);
-    this.writes.add(pending); void pending.finally(() => this.writes.delete(pending)).catch(() => {});
+    this.writes.add(pending); this.usageWrites.add(pending);
+    void pending.finally(() => { this.writes.delete(pending); this.usageWrites.delete(pending); }).catch(() => {});
     return pending;
   }
   private async workForRoot(root: string): Promise<string> {
@@ -224,8 +252,10 @@ export class DreamProcessHost implements DreamHostPort {
       return reserved;
     }
     if (method === "budget.settle") {
+      // Cancellation can arrive while the last received usage chunk is still persisting.
+      await Promise.allSettled([...this.usageWrites]);
       const request = this.reservations.get(input.id); if (!request) throw new Error("梦境额度请求已失效");
-      const result = await (await this.budgetForWork(request.workId)).settleRequest(request.id, input.actual, request.date);
+      const result = await (await this.budgetForWork(request.workId)).settleRequest(request.id, undefined, request.date);
       this.reservations.delete(request.id); return result;
     }
     if (method === "stream.open") {

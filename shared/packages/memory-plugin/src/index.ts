@@ -5,6 +5,7 @@ export const name = "jizuo-memory";
 export const inject = ["jizuoCreationHost", "tools"];
 export function apply(ctx: Context) {
   const runtime = ctx.get("jizuoCreationHost") as CreationHostRuntime;
+  runtime.registerSkills?.(ctx, "memory");
   ctx.provide("jizuoMemoryApi", runtime.apis.memory);
   registerJizuoTools(ctx, runtime.service, runtime.workflowChapterWrites, "memory");
 }
