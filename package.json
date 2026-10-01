@@ -1,6 +1,6 @@
 {
   "name": "@jizuo/memory-plugin",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "main": "./lib/index.js",
@@ -30,7 +30,7 @@
     }
   },
   "dependencies": {
-    "@jizuo/plugin": "0.3.1"
+    "@jizuo/plugin": "0.3.2"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.4",

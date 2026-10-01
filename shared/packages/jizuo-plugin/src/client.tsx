@@ -768,7 +768,7 @@ export function registerNativeShellContributions(
   }, MainVideoComposerFooter))) : () => {};
   const stopWorkspaceAccess = ["conversation.hero.actions", "conversation.session.header.actions"].map(name =>
     host.slots.inject(name, () => host.slots.register({name, id: "jizuo-workspace-access", order: -20}, ComposerWorkspaceAccess)));
-  const stopWorkflowProgress = workflowSessions !== undefined && hasWorkflowRemote(remote)
+  const stopWorkflowProgress = hostUi !== "native" && workflowSessions !== undefined && hasWorkflowRemote(remote)
     ? host.slots.inject(
       "conversation.input.dock",
       () => host.slots.register(
@@ -962,6 +962,11 @@ export async function apply(ctx: Context, options: ClientOptions = {}): Promise<
   // Runtime capability, never token absence, determines the browser adapter.
   const desktop = isTauri() || "__TAURI_INTERNALS__" in window;
   if (desktop) desktopControlToken(window.location.href);
+  // Feature clients contribute panel factories without invoking remote methods.
+  // Publish this synchronous capability before remote mounting can yield: the
+  // native shell audits feature activation before starting its transport loop.
+  creationClientApi.preferences.trackWorkspacePluginAvailability();
+  ctx.provide("jizuoCreationClient", creationClientApi);
   const disposeRemote = await ctx.remote.$mount(TYPERT_REMOTE);
   const rawHostRemote = ctx.get("remote.jizuo") as JizuoHostRemote | undefined;
   if (rawHostRemote === undefined) {
@@ -1001,7 +1006,7 @@ export async function apply(ctx: Context, options: ClientOptions = {}): Promise<
   }) : undefined;
   let workflowSessions: WorkflowSessionSource | undefined;
   try {
-    workflowSessions = workflowSessionSource(ctx);
+    if (options.hostUi !== "native") workflowSessions = workflowSessionSource(ctx);
   } catch (reason) {
     // A partially embedded Harness surface may not expose sessions.  Keep the
     // rest of the writing UI usable; the dock is deliberately optional there.
@@ -1164,8 +1169,6 @@ export async function apply(ctx: Context, options: ClientOptions = {}): Promise<
     const triggers = scope.get("inputTriggers") as { registerSource(source: import("@deepseek-ai/dsh-client-ui-input-trigger/client").InputTriggerSource): () => void };
     for (const source of [videoComposer.episodeSource, videoComposer.imageSource, videoComposer.videoSource, videoComposer.audioSource, videoComposer.shotSource, videoComposer.designSource, videoComposer.editingSource, videoComposer.styleSource]) scope.effect(() => triggers.registerSource(source));
   });
-  creationClientApi.preferences.trackWorkspacePluginAvailability();
-  ctx.provide("jizuoCreationClient", creationClientApi);
   const stopShell = ctx.effect(() => registerNativeShellContributions({
     slots: ctx.slots as unknown as NativeShellSlots,
     workspaces: ctx.workspaces,
