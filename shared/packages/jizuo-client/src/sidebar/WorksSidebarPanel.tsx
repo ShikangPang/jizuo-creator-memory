@@ -4,7 +4,7 @@ import { isBuiltinPluginEnabled, isWorkspacePluginAvailable, useWorkspacePlugins
 import { userErrorMessage } from "@jizuo/contracts";
 import { ActionIcon } from "../ui/ActionIcon.tsx";
 import { IconButton } from "../ui/IconButton.tsx";
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 
 import type {
   ChapterSummary,
@@ -25,6 +25,12 @@ import { WorkToolsDialog, type PickExportFile } from "./WorkToolsDialog.tsx";
 import { WorkSessions } from "./WorkSessions.tsx";
 import { MemoryPalaceEntry } from "./MemoryPalaceEntry.tsx";
 import type { SessionNavigation } from "./sessionNavigation.ts";
+
+function MenuAction({ icon, label, className, ...props }: ComponentProps<typeof IconButton>) {
+  return <button {...props} className={["jz-menu-action", className].filter(Boolean).join(" ")}>
+    <ActionIcon name={icon} className="jz-icon" /><span>{label}</span>
+  </button>;
+}
 
 export type CreateTarget =
   | { kind: "work" }
@@ -602,11 +608,11 @@ export function WorksSidebarPanel({
   const renderMenu = (target: TreeTarget) => menuTarget !== null && targetKey(menuTarget) === targetKey(target) && (
     <div className="jz-row-menu" role="menu" aria-label={`${target.title}操作`}>
       {target.kind === "work" && <>
-        {pluginEnabled(target.workId, "writing") && remote.searchWork && <IconButton icon="search" label={"全书搜索"} type="button" role="menuitem" onClick={() => { setMenuTarget(null); setWorkTool({ ...target, mode: "search" }); }} />}
-        {pluginEnabled(target.workId, "writing") && remote.exportWork && <IconButton icon="export" label={"导出作品"} type="button" role="menuitem" onClick={() => { setMenuTarget(null); setWorkTool({ ...target, mode: "export" }); }} />}
+        {pluginEnabled(target.workId, "writing") && remote.searchWork && <MenuAction icon="search" label={"全书搜索"} type="button" role="menuitem" onClick={() => { setMenuTarget(null); setWorkTool({ ...target, mode: "search" }); }} />}
+        {pluginEnabled(target.workId, "writing") && remote.exportWork && <MenuAction icon="export" label={"导出作品"} type="button" role="menuitem" onClick={() => { setMenuTarget(null); setWorkTool({ ...target, mode: "export" }); }} />}
       </>}
       {target.kind === "volume" && (
-        <IconButton icon="outline" label={"编辑分卷大纲"}
+        <MenuAction icon="outline" label={"编辑分卷大纲"}
           type="button"
           role="menuitem"
           onClick={() => {
@@ -615,8 +621,8 @@ export function WorksSidebarPanel({
           }}
          />
       )}
-      <IconButton icon="edit" label={"重命名" + (kindName(target.kind))} type="button" role="menuitem" onClick={() => { beginRename(target); }} />
-      <IconButton icon="delete" label={"删除" + (kindName(target.kind))} type="button" role="menuitem" className="danger" onClick={() => { void beginDelete(target); }} />
+      <MenuAction icon="edit" label={"重命名" + (kindName(target.kind))} type="button" role="menuitem" onClick={() => { beginRename(target); }} />
+      <MenuAction icon="delete" label={"删除" + (kindName(target.kind))} type="button" role="menuitem" className="danger" onClick={() => { void beginDelete(target); }} />
     </div>
   );
 

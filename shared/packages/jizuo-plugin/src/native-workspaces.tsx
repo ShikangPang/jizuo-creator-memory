@@ -96,7 +96,7 @@ export function NativeWorkspaces({ host, ...props }: ComponentProps<typeof Works
             <button className="jz-tree-main" onClick={() => run(() => openWorkspaceConversation(host, item.workspaceId))}><ActionIcon name="folder" />{title}</button>
             <button aria-label={`在${title}新建会话`} onClick={() => { clearSelection(); host.uiWorkspace.startSession(item.workspaceId); }}>＋</button>
           </div>
-          {isExpanded && <WorkSessions showCreate={false} navigation={{
+          {isExpanded && <WorkSessions showCreate={false} showHeading={false} navigation={{
             listWorkSessions: async () => [],
             listGeneralSessions: async () => item.sessionIds.filter(id => !snapshot?.archivedSessionIds.includes(id)).map(id => ({
               id, title: sessions?.byId[id]?.title || sessions?.byId[id]?.displayTitle || "新会话", current: sessions?.current === id,

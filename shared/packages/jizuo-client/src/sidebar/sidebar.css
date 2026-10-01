@@ -1243,3 +1243,9 @@
 .jz-create-project-kind-options label[data-disabled="true"] { opacity: .5; cursor: default; }
 .jz-create-project-kind-options small { flex-basis: 100%; text-align: center; font-size: 11px; }
 .jz-create-content-actions button:disabled { opacity: .4; }
+
+.jz-row-menu:has(.jz-menu-action) { width: 176px; padding: 6px; border-radius: 12px; background: var(--dsw-alias-bg-base, #f9fafb); box-shadow: 0 8px 24px rgb(20 24 28 / 12%); }
+.jz-row-menu > button.jz-menu-action { display: flex; align-items: center; gap: 10px; box-sizing: border-box; width: 100%; min-height: 36px; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--dsw-alias-label-primary, #202326); font: inherit; font-size: 13px; line-height: 20px; text-align: left; white-space: nowrap; }
+.jz-row-menu > button.jz-menu-action .jz-icon { flex: none; width: 16px; height: 16px; }
+.jz-row-menu > button.jz-menu-action:hover { background: var(--dsw-alias-interactive-bg-hover, #e7e9ec); }
+.jz-row-menu > button.jz-menu-action.danger { color: var(--dsw-alias-state-error, #e5484d); }

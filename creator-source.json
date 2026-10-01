@@ -1,6 +1,6 @@
 {
   "feature": "memory",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "harnessVersion": "0.2.0-rc.2",
   "sharedCode": "Included in shared/, no private repository required"
 }
