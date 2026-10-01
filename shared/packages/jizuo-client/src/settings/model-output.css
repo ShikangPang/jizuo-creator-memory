@@ -50,8 +50,14 @@
 .jz-media-default span { overflow-wrap: anywhere; color: var(--dsw-alias-label-secondary, #626872); }
 .jz-media-library details > summary { cursor: pointer; padding: 8px 0; }
 .jz-media-speech { margin-top: 24px; border-top: 1px solid var(--dsw-alias-border-l1, #dfe2e6); }
-.jz-media-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-.jz-media-tabs [aria-pressed="true"] { background: var(--dsw-alias-bg-hover, #f0f1f3); }
+/* Match the host SegmentedControl tokens, including in standalone plugin cards. */
+.jz-media-tabs { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 4px; margin-bottom: 12px; border-radius: var(--dsw-radius-md, 10px); background: var(--dsw-alias-interactive-bg-hover, #f0f1f3); }
+.jz-media-tabs > button { appearance: none; box-sizing: border-box; height: 28px; padding: 0 16px; border: 0; border-radius: var(--dsw-radius-sm, 6px); background: transparent; color: var(--dsw-alias-label-secondary, #626872); font: inherit; font-size: 13px; font-weight: 500; line-height: 20px; white-space: nowrap; cursor: pointer; transition: color 120ms ease; }
+.jz-media-tabs > button:hover,
+.jz-media-tabs > button[aria-pressed="true"] { color: var(--dsw-alias-label-primary, #25282d); }
+.jz-media-tabs > button[aria-pressed="true"] { background: var(--dsw-alias-bg-layer-1, #fff); box-shadow: var(--dsw-elevation-soft, 0 1px 3px #00000014); }
+.jz-media-tabs > button:focus-visible { outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary, #4d6bfe)); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .jz-media-tabs > button { transition: none; } }
 
 /* Connection fields share a row when the settings panel has enough room. */
 .jz-media-library { container: media-settings / inline-size; }

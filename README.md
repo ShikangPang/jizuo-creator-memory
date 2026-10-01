@@ -7,7 +7,7 @@
 支持 **DeepSeek Harness Desktop 0.2.0-rc.2**。在左侧「插件」→「添加插件」粘贴下面这一行，确认来源后安装：
 
 ```text
-https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.7/jizuo-memory-plugin-0.3.7.tgz
+https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.8/jizuo-memory-plugin-0.3.8.tgz
 ```
 
 只填安装包地址，不要填整个安装命令。安装完成后「已安装」中显示「即作记忆」，可分别启用、关闭、配置或卸载。共享核心已包含在安装包中，自动加载，不需要另装即作桌面端或手动安装核心插件。保留 Harness 原有新会话、插件与工作区入口；创作项目统一显示在工作区区域，小说和视频以类型标签区分，不再提供独立的创作面板。
@@ -17,7 +17,7 @@ https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.7/jiz
 也可使用 Desktop 菜单安装的 dsh 命令：
 
 ```sh
-dsh plugin --profile desktop add https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.7/jizuo-memory-plugin-0.3.7.tgz
+dsh plugin --profile desktop add https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.3.8/jizuo-memory-plugin-0.3.8.tgz
 ```
 
 源码克隆后运行 `node scripts/install.mjs --all` 一次安装五个插件，默认 desktop；Web 用户显式传 `--profile web`。脚本严格检查宿主版本。不要用旧版全局 dsh 命令安装到新版 Desktop，也不要绕过兼容检查。
