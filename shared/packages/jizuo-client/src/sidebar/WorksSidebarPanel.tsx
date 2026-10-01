@@ -742,7 +742,7 @@ export function WorksSidebarPanel({
 
                 {workExpanded && (
                   <div className="jz-work-sections" role="group">
-                    {sessionNavigation !== undefined && <WorkSessions workId={work.id} navigation={sessionNavigation} showCreate={!workspaceMode} />}
+                    {sessionNavigation !== undefined && <WorkSessions workId={work.id} navigation={sessionNavigation} showCreate={!workspaceMode} showHeading={!workspaceMode} />}
                     <div className="jz-work-files" role="group" aria-label="作品文件">
                     <div className="jz-work-section-heading"><span><Icon name="folder" />作品文件</span>
                       {work.hasLegacyVideo && videoEnabled && <button type="button" onClick={() => switchWorkMode(work.id, videoMode ? "novel" : "video")}>{videoMode ? "返回小说章节" : "历史视频内容"}</button>}

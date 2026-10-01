@@ -9,7 +9,7 @@ export function ProjectFeatures({ workId, projectKind }: { workId: string; proje
   const [error, setError] = useState<string>();
   return <details className="jz-project-features">
     <summary>项目功能</summary>
-    <p>为此项目选择界面插件。停用保留内容，聊天生成和后台任务继续可用。设置保存在当前设备。</p>
+    <p>选择此项目的功能入口，停用后保留已有内容。</p>
     {WORKSPACE_PLUGINS.filter(plugin => !projectKind || !plugin.mode || plugin.mode === projectKind).map(plugin => {
       const editing = selection.workId === workId && pluginForOverlay(selection.overlay)?.id === plugin.id;
       return <label key={plugin.id}>

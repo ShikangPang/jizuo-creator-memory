@@ -29,6 +29,8 @@
   min-width: 0;
   overflow: hidden;
   padding: 8px;
+  --jz-icon-button-size: 28px;
+  --jz-icon-size: 16px;
   color: var(--dsw-alias-label-primary, #202326);
 }
 /* Keep the tree's scroll viewport bounded by the host's workspace region.
@@ -39,3 +41,17 @@
   overflow: hidden;
 }
 .jz-add-workspace { flex: none; border: 0; background: transparent; color: inherit; text-align: left; padding: 10px; cursor: pointer; }
+
+[data-surface="native-workspaces"] .jz-tree-row { position: relative; }
+[data-surface="native-workspaces"] .jz-tree-actions { position: absolute; right: 4px; border-radius: var(--dsw-radius-sm, 6px); background: var(--dsw-specific-sidebar-fill, #f0f2f4); pointer-events: none; }
+[data-surface="native-workspaces"] .jz-tree-row:is(:hover, :focus-within) .jz-tree-actions { opacity: 1; pointer-events: auto; }
+[data-surface="native-workspaces"] .jz-tree-row:not(:hover):not(:focus-within) .jz-tree-actions { opacity: 0; }
+[data-surface="native-workspaces"] .jz-tree-row:is(:hover, :focus-within) > .jz-tree-main { padding-right: 60px; }
+[data-surface="native-workspaces"] .jz-tree-kind { width: 20px; height: 20px; background: transparent; }
+[data-surface="native-workspaces"] .jz-work-files .jz-work-section-heading > button { appearance: none; border: 0; padding: 4px 8px; border-radius: var(--dsw-radius-sm, 6px); background: transparent; color: inherit; font: inherit; cursor: pointer; }
+[data-surface="native-workspaces"] .jz-work-files .jz-work-section-heading > button:hover { background: var(--dsw-alias-interactive-bg-hover, #e7e9ec); }
+@media (hover: none) {
+  [data-surface="native-workspaces"] .jz-tree-actions,
+  [data-surface="native-workspaces"] .jz-tree-row:not(:hover):not(:focus-within) .jz-tree-actions { position: static; opacity: 1; pointer-events: auto; }
+  [data-surface="native-workspaces"] .jz-tree-row:is(:hover, :focus-within) > .jz-tree-main { padding-right: 6px; }
+}
