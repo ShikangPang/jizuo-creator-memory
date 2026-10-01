@@ -1,7 +1,6 @@
-- id: ui-sidebar
-  disabled: true
 - insert:
     - id: jizuo-plugin
       name: "@jizuo/plugin"
       config:
         chapterWorkflowEnabled: false
+        hostUi: native

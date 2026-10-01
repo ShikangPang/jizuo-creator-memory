@@ -42,7 +42,7 @@ export function WorkStorageSettings(props: WorkStorageSettingsProps) {
   </div>;
 }
 
-function StorageLocation({ remote, pickDirectory, syncLocations, title }: WorkStorageSettingsProps & { title: string }) {
+export function StorageLocation({ remote, pickDirectory, syncLocations, title }: WorkStorageSettingsProps & { title: string }) {
   const [locations, setLocations] = useState<WorkLocations>();
   const [busy, setBusy] = useState<"choose" | "reset">();
   const [error, setError] = useState<string>();

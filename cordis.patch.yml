@@ -1,3 +1,8 @@
 - insert:
+    - id: jizuo-memory-core
+      name: "@jizuo/plugin"
+      config:
+        hostUi: native
+        chapterWorkflowEnabled: false
     - id: jizuo-memory
       name: "@jizuo/memory-plugin"

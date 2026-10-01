@@ -1,3 +1,7 @@
+import { StorageLocation } from "../../jizuo-client/src/settings/WorkStorageSettings.tsx";
+import { NativeCreationProjects, NativeCreationIcon } from "../../jizuo-client/src/sidebar/NativeCreationProjects.tsx";
+import { WORKSPACE_PLUGINS, type WorkspacePluginId } from "../../jizuo-client/src/plugins/registry.ts";
+import { subscribeWorkspacePlugins, isBuiltinPluginEnabled } from "../../jizuo-client/src/plugins/preferences.ts";
 import type { NativeShellHost, NativeShellSlots } from "./shell-host.ts";
 import { BuiltinPluginsSettings } from "../../jizuo-client/src/plugins/BuiltinPluginsSettings.tsx";
 import { creationPanels, subscribeCreationPanels, creationClientApi } from "./creation-client.ts";
@@ -274,7 +278,9 @@ export type JizuoWorkflowRemote = ClientJizuoWorkflowRemote;
 
 export type { NativeShellHost, NativeShellSlots } from "./shell-host.ts";
 
-interface NativeShellDependencies {
+export interface ClientOptions { hostUi?: "jizuo" | "native" }
+
+interface NativeShellDependencies extends ClientOptions {
   remote: JizuoContentRemote & MemoryPalaceOverlayRemote & WorkLocationsRemote & Partial<ClientJizuoWorkflowRemote>;
   account?: AccountRemote;
   about?: { version: string; remote: AboutJizuoRemote };
@@ -719,6 +725,20 @@ export function registerComposerModelTypeControl(
   }, ComposerModelTypeControl));
 }
 
+/** Match optional UI lifetimes to the separately loaded feature clients. */
+function registerForCreationFeature(id: WorkspacePluginId, install: () => () => void): () => void {
+  let stop: (() => void) | undefined;
+  const sync = () => {
+    const enabled = !!creationPanels(id) && isBuiltinPluginEnabled(id);
+    if (enabled && !stop) stop = install();
+    else if (!enabled && stop) { stop(); stop = undefined; }
+  };
+  const stopPanels = subscribeCreationPanels(sync);
+  const stopPreferences = subscribeWorkspacePlugins(sync);
+  sync();
+  return () => { stopPanels(); stopPreferences(); stop?.(); };
+}
+
 export function registerNativeShellContributions(
   host: NativeShellHost,
   {
@@ -736,13 +756,16 @@ export function registerNativeShellContributions(
     workflowSessions,
     videoComposer,
     draftImagesFor,
+    hostUi = "jizuo",
   }: NativeShellDependencies,
 ): () => void {
+  const feature = (id: WorkspacePluginId, install: () => () => void) => hostUi === "native"
+    ? registerForCreationFeature(id, install) : install();
   const stopLocalDirectory = registerLocalDirectoryQuery(remote);
-  const stopVideoComposer = videoComposer ? host.slots.inject("conversation.input.left", () => host.slots.register({
+  const stopVideoComposer = videoComposer ? feature("video", () => host.slots.inject("conversation.input.left", () => host.slots.register({
     name: "conversation.input.left", id: "jizuo-main-video-composer", order: -21,
     inject: () => ({ remote, composer: videoComposer, draftImagesFor }),
-  }, MainVideoComposerFooter)) : () => {};
+  }, MainVideoComposerFooter))) : () => {};
   const stopWorkspaceAccess = ["conversation.hero.actions", "conversation.session.header.actions"].map(name =>
     host.slots.inject(name, () => host.slots.register({name, id: "jizuo-workspace-access", order: -20}, ComposerWorkspaceAccess)));
   const stopWorkflowProgress = workflowSessions !== undefined && hasWorkflowRemote(remote)
@@ -763,7 +786,7 @@ export function registerNativeShellContributions(
     )
     : () => undefined;
 
-  const stopHeroBrand = host.slots.inject(
+  const stopHeroBrand = hostUi === "native" ? () => {} : host.slots.inject(
     "conversation.hero.brand.mark",
     () => host.slots.register(
       { name: "conversation.hero.brand.mark", id: "jizuo-brand-mark", priority: -1 },
@@ -772,7 +795,7 @@ export function registerNativeShellContributions(
   );
 
   const navigation = createSessionNavigation(host, remote);
-  const stopSidebar = host.slots.inject("sidebar", () => host.slots.register({
+  const stopSidebar = hostUi === "native" ? registerNativeCreationNavigation() : host.slots.inject("sidebar", () => host.slots.register({
     name: "sidebar",
     priority: -1,
     children: {
@@ -792,6 +815,42 @@ export function registerNativeShellContributions(
     }),
   }, JizuoSidebarRoot));
 
+  function registerNativeCreationNavigation(): () => void {
+    let stops: Array<() => void> = [];
+    const configs = new Map<string, () => void>();
+    const sync = () => {
+      for (const { id } of WORKSPACE_PLUGINS) {
+        if (!creationPanels(id)) { configs.get(id)?.(); configs.delete(id); continue; }
+        if (configs.has(id)) continue;
+        configs.set(id, host.slots.inject("plugins.bundle.config", () => host.slots.register({
+          name: "plugins.bundle.config", key: `@jizuo/${id}-plugin`,
+          inject: () => id === "memory" ? { remote, subscribeWorksChanges } : {
+            remote: id === "video" ? remote.video : remote,
+            title: id === "video" ? "视频项目存储" : "小说存储",
+            ...(pickWorkDirectory ? { pickDirectory: pickWorkDirectory } : {}),
+          },
+        }, id === "memory" ? DreamMemorySettings : id === "video" && !remote.video
+          ? () => <p role="status">视频项目存储暂不可用，请更新即作创作插件后重试。</p>
+          : StorageLocation)));
+      }
+      const enabled = WORKSPACE_PLUGINS.some(({ id }) => creationPanels(id) && isBuiltinPluginEnabled(id));
+      if (enabled === (stops.length > 0)) return;
+      if (!enabled) { stops.splice(0).reverse().forEach(stop => stop()); return; }
+      stops.push(host.slots.inject("main", () => host.slots.register({
+        name: "main", key: "jizuo-creation",
+        inject: () => ({ remote, pickImportFile, pickExportFile, subscribeWorksChanges,
+          sessionNavigation: navigation }),
+      }, NativeCreationProjects)));
+      stops.push(host.slots.inject("sidebar.panellist", () => host.slots.register({
+        name: "sidebar.panellist", id: "jizuo-creation", order: 30, label: () => "即作创作",
+      }, NativeCreationIcon)));
+    };
+    const stopPanels = subscribeCreationPanels(sync);
+    const stopPreferences = subscribeWorkspacePlugins(sync);
+    sync();
+    return () => { stopPanels(); stopPreferences(); stops.reverse().forEach(stop => stop()); configs.forEach(stop => stop()); };
+  }
+
   const stopOverlay = host.slots.inject("shell.overlay", () => {
     let disposeOccupant: (() => void) | undefined;
     let mountedKey = "";
@@ -807,7 +866,7 @@ export function registerNativeShellContributions(
         release();
         return;
       }
-      if (disposeOccupant !== undefined && mountedKey === nextKey && creationPanels(pluginForOverlay(selection.overlay)!.id)) return;
+      if (disposeOccupant !== undefined && mountedKey === nextKey && creationPanels(pluginForOverlay(selection.overlay)!.id) && isWorkspacePluginEnabled(selection.workId, pluginForOverlay(selection.overlay)!.id)) return;
       release();
       mountedKey = nextKey;
       const owner = pluginForOverlay(selection.overlay);
@@ -817,15 +876,17 @@ export function registerNativeShellContributions(
     };
     const stopPlugins = subscribeCreationPanels(sync);
     const stopSelection = subscribeSelection(sync);
+    const stopPreferences = subscribeWorkspacePlugins(sync);
     sync();
     return () => {
       stopPlugins();
       stopSelection();
+      stopPreferences();
       release();
     };
   });
 
-  const stopBuiltinPlugins = host.slots.inject("settings.plugins.tab", () => host.slots.register({
+  const stopBuiltinPlugins = hostUi === "native" ? () => {} : host.slots.inject("settings.plugins.tab", () => host.slots.register({
     name: "settings.plugins.tab", id: "jizuo-creation-plugins", order: -10,
     label: () => "创作插件",
   }, BuiltinPluginsSettings));
@@ -839,15 +900,15 @@ export function registerNativeShellContributions(
   const stopModelOutputs = modelOutputs ? ["llm-pi-ai", "llm-deepseek"].map((key) => host.slots.inject("settings.models.provider-card", () => host.slots.register({
     name: "settings.models.provider-card", key, inject: () => ({ remote: modelOutputs }),
   }, ProviderModelsSettings))) : [];
-  const stopMediaModels = mediaModels && host.slots.inject("settings.models.footer", () => host.slots.register({
+  const stopMediaModels = mediaModels && feature("video", () => host.slots.inject("settings.models.footer", () => host.slots.register({
     name: "settings.models.footer", id: "jizuo-media-models", order: 15,
     inject: () => ({ remote: mediaModels }),
-  }, MediaModelsSettings));
-  const stopDreamSettings = host.slots.inject("settings.section", () => host.slots.register({
+  }, MediaModelsSettings)));
+  const stopDreamSettings = hostUi === "native" ? () => {} : host.slots.inject("settings.section", () => host.slots.register({
     name: "settings.section", id: "jizuo-dream-memory", order: 30, label: () => "梦境记忆",
     inject: () => ({ remote, subscribeWorksChanges }),
   }, DreamMemorySettings));
-  const stopWorkStorage = host.slots.inject("settings.section", () => host.slots.register({
+  const stopWorkStorage = hostUi === "native" ? () => {} : host.slots.inject("settings.section", () => host.slots.register({
     name: "settings.section",
     id: "jizuo-work-storage",
     order: 20,
@@ -897,7 +958,7 @@ export function registerNativeShellContributions(
 
 export const inject = ["slots", "remote", "layout", "workspaces", "uiWorkspace", "sessions", "conversation"];
 
-export async function apply(ctx: Context): Promise<() => Promise<void>> {
+export async function apply(ctx: Context, options: ClientOptions = {}): Promise<() => Promise<void>> {
   // Runtime capability, never token absence, determines the browser adapter.
   const desktop = isTauri() || "__TAURI_INTERNALS__" in window;
   if (desktop) desktopControlToken(window.location.href);
@@ -988,7 +1049,11 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
     ensure: sessionId => imageChat.ensure(sessionId),
     subscribe: listener => { imageChatListeners.add(listener); return () => { imageChatListeners.delete(listener); }; },
   });
-  const stopImageChat = (ctx.slots as unknown as NativeShellSlots).inject("conversation.chat.media", () =>
+  const videoSlots: NativeShellSlots = options.hostUi === "native" ? {
+    inject: (name, install) => registerForCreationFeature("video", () => (ctx.slots as unknown as NativeShellSlots).inject(name, install)),
+    register: (registration, component) => (ctx.slots as unknown as NativeShellSlots).register(registration, component),
+  } : ctx.slots as unknown as NativeShellSlots;
+  const stopImageChat = videoSlots.inject("conversation.chat.media", () =>
     (ctx.slots as unknown as NativeShellSlots).register({ name: "conversation.chat.media", id: "jizuo-image-generation-history", order: 0,
       inject: () => ({ remote, store: imageChat }),
     }, ChatImageConversation));
@@ -1050,11 +1115,11 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
     const binding = ctx.sessions.binding(sessionId as Parameters<typeof ctx.sessions.binding>[0]);
     if (binding) ctx.conversation.input.for(binding.ctx).notify("error", userErrorMessage(message, "图片添加失败", { operation: "imageDrop" }));
   };
-  const stopWorkImageDrop = (ctx.slots as unknown as NativeShellSlots).inject("conversation.input.overlay", () =>
+  const stopWorkImageDrop = videoSlots.inject("conversation.input.overlay", () =>
     (ctx.slots as unknown as NativeShellSlots).register({ name: "conversation.input.overlay", id: "jizuo-work-image-drop", order: 10,
       inject: () => ({ attach: attachWorkImage, notify: notifyImageDrop }),
     }, ComposerWorkImageDrop));
-  const stopPromptReferencePreview = (ctx.slots as unknown as NativeShellSlots).inject("conversation.input.overlay", () =>
+  const stopPromptReferencePreview = videoSlots.inject("conversation.input.overlay", () =>
     (ctx.slots as unknown as NativeShellSlots).register({ name: "conversation.input.overlay", id: "jizuo-prompt-reference-preview", order: 20,
       inject: (sessionId: string) => {
         const binding = ctx.sessions.binding(sessionId as Parameters<typeof ctx.sessions.binding>[0]);
@@ -1062,7 +1127,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       },
     }, ComposerPromptPreview));
   // Keep the entry independent from the native text-model catalog and its load order.
-  const stopModelType = registerComposerModelTypeControl(ctx.slots as unknown as NativeShellSlots, {
+  const stopModelType = registerComposerModelTypeControl(videoSlots, {
     remote, composer: videoComposer,
     availableFor: sessionId => ctx.sessions.subagentAddress(sessionId as Parameters<typeof ctx.sessions.subagentAddress>[0]) === undefined,
     inputFor: sessionId => {
@@ -1135,6 +1200,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       },
     },
   }, {
+    ...options,
     remote,
     ...(account ? { account } : {}),
     ...(desktop ? {

@@ -27,6 +27,7 @@ import {
 } from "@jizuo/workflow-runtime";
 
 import { Config, type Config as ConfigShape } from "./config.ts";
+import { mountSharedCreationHost } from "./shared-creation-host.ts";
 import { VideoProductionService } from "./video/production.ts";
 import { VideoEditingService, loadVideoMediaMetadata } from "./video/editing-service.ts";
 import { normalizeImageReference } from "./video/renderer.ts";
@@ -92,6 +93,14 @@ export * from "./workflow/writeCapability.ts";
 export const inject = ["credentials", "settings", "llm", "agentDefaultModel", "agents", "subagents", "sessions"];
 
 export async function apply(ctx: Context, config: ConfigShape): Promise<void> {
+  if (config.hostUi === "native") {
+    await mountSharedCreationHost(ctx, config, { name: "jizuo-shared-runtime", inject, apply: applyCreationRuntime });
+    return;
+  }
+  await applyCreationRuntime(ctx, config);
+}
+
+async function applyCreationRuntime(ctx: Context, config: ConfigShape): Promise<void> {
   // Ordinary chat loads skills without starting a chapter workflow. Finish the
   // byte-checked upgrade before registering services that can accept a chat.
   await upgradeBuiltinWorkflowSkills(resolveWorkflowResourceRoot(), config.settingsRoot);

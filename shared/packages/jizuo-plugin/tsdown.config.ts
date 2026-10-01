@@ -103,7 +103,7 @@ export default defineConfig([
   },
   {
     name: "jizuo-plugin/client",
-    entry: { client: "src/client.tsx" },
+    entry: { client: "src/client.public.ts" },
     outDir: "lib",
     format: "cjs",
     platform: "browser",

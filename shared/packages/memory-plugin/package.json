@@ -34,7 +34,7 @@
     "@jizuo/contracts": "workspace:*",
     "@jizuo/work-domain": "workspace:*",
     "@jizuo/memory-domain": "workspace:*",
-    "@deepseek-ai/dsh-tools": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
     "zod": "4.4.3"
   },
   "peerDependencies": {

@@ -1,0 +1,22 @@
+[data-plugin="jizuo"][data-surface="native-creation"] {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  padding-top: var(--dsh-frame-top-clearance, 0px);
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-primary, #202326);
+}
+.jz-native-projects {
+  display: flex;
+  flex: 0 0 min(320px, 45%);
+  min-width: 180px;
+  min-height: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--dsw-alias-border-l1, #d8dce1);
+}
+.jz-native-project-hint { margin: auto; padding: 24px; }
+.jz-native-project-hint h1 { font-size: 20px; }
+.jz-native-project-hint p { color: var(--dsw-alias-label-secondary, #777); }
