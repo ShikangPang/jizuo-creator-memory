@@ -31,7 +31,7 @@ scope: builtin
 
 用户要求生成制作稿、重新整理制作稿或 AI 调整镜头时，直接在当前对话创作，保存到目标 workId、episodeId，不新建作品或视频集，不调用 jizuo_adapt_video_episode，不启动小说写作工作流。
 
-1. **读取来源**：调用 jizuo_read_video_project，参数仅为 {"input":{"workId":"目标workId"}}。按 episodeId 定位视频集，记录项目 revision、sourceChapters、script、shots、designs 和 visualStyle。需要检查当前视频集采用的原著章节时调用 jizuo_read_video_episode_sources，参数为 {"input":{"workId":"目标workId","episodeId":"目标episodeId"}}，按返回顺序和缺失状态核对关联；标题与 ID 均以工具实时结果为准。沿最新 sourceChapters 逐章调用 jizuo_read_chapter，参数为顶层 {"workId":"该来源的sourceWorkId（旧记录省略时才用目标workId）","volumeId":"关联卷ID","chapterId":"关联章节ID"}，不加 input 或 revisionToken。请求中的章节快照只供定位，不凭标题猜章节。视频集、关联章节缺失或读取失败时说明具体缺失项并停止，不编造原文。
+1. **读取来源**：调用 jizuo_read_video_project，参数仅为 {"input":{"workId":"目标workId"}}。按 episodeId 定位视频集，记录项目 revision、sourceChapters、script、shots、designs 和 visualStyle。读取原著正文时调用 jizuo_read_video_episode_sources，参数为 {"input":{"workId":"目标workId","episodeId":"目标episodeId","includeContent":true}}。沿最新 sourceChapters 逐章使用返回的 content、sourceWorkId 和 currentRevisionToken，按关联顺序核对来源；不依赖写作插件的章节工具。revisionToken 是已保存的历史来源版本，currentRevisionToken 是本次读取版本，两者不可混淆。只检查关联信息时可省略 includeContent。请求中的章节快照只供定位，不凭标题猜章节。来源缺失、正文读取失败或超过工具读取上限时停止并说明具体原因，必要时请用户缩小关联章节范围；不编造或静默截断原文。
 2. **补齐设定**：整集改编先检查未删除的 designs，再调用 jizuo_extract_video_designs，input 为 workId、episodeId、最新 expectedRevision。仅补充原著及本集剧本涉及的缺失人物、场景；明确别名、称谓、同一地点不同叫法复用已有设定，换装或昼夜变化不新建设定。保留已有 id、描述、版本、锁定状态和素材。提取成功后沿用返回的最新 revision 和 designs，无新增也继续。指定 shotIds 时只调整目标镜头，不执行整集提取。提取失败如实报告，不绕过去重工具盲目创建。
 3. **编写制作稿**：先简要报告已读取的章节和准备改编的情节。结合完整原文、已保存 script、designs、visualStyle 和用户 instructions 编写剧本及分镜；instructions 为空时无需另行确认。每个镜头包含标题、画面描述、对白、时长、静态图片提示词和描述动作、运镜、声音的视频提示词。已有镜头使用原 ID，保留锁定镜头、锁定提示词、素材关联、归档镜头及非目标字段。新镜头按工具 schema 填全必需字段，使用唯一 ID，revision 为 0，锁定值为 false，无参考素材时 referenceAssetIds 为 []，imageAssetId、videoAssetId 直接省略（不能传 null 或空字符串），对白可为空。designs[].id 只标识设定，不是 assets[].id；提取设定只生成文字，不生成素材，不能把设定 ID、人物名、场景名或占位符填入素材字段。仅引用当前 assets 中已存在且类型匹配的素材。
 4. **保存并核对**：调用 jizuo_update_video_episode，参数为 {"input":{"workId":"目标workId","episodeId":"目标episodeId","expectedRevision":最新项目版本,"patch":本次改动}}。提交 shots 数组时包含所有应保留的镜头。版本冲突后重新读取并合并，不能只换 expectedRevision 重交旧稿。核对成功返回的目标视频集，报告原著章节、镜头数量、总时长、复用及新增设定和保存结果；工具未确认成功不能声称已保存。
@@ -57,7 +57,7 @@ scope: builtin
 ```
 
 ```prompt:media-tool-3
-读取独立视频项目的视频集、制作稿、素材、剪辑和任务。只传 {"input":{"workId":"实际作品ID"}}，不传 episodeId。返回项目顶层 revision 用于后续修改；在 episodes 中按 id 定位视频集，其 sourceChapters 提供原著 sourceWorkId、volumeId 和 chapterId，再用 jizuo_read_chapter 读取正文，读取章节的 workId 必须使用来源 sourceWorkId，只有旧记录省略时才回退目标 workId。
+读取独立视频项目的视频集、制作稿、素材、剪辑和任务。只传 {"input":{"workId":"实际作品ID"}}，不传 episodeId。返回项目顶层 revision 用于后续修改；在 episodes 中按 id 定位视频集，其 sourceChapters 提供原著 sourceWorkId、volumeId 和 chapterId，调用 jizuo_read_video_episode_sources 并传 includeContent:true 即可读取已关联小说正文，不依赖写作插件。
 ```
 
 ```prompt:media-tool-4
@@ -157,7 +157,7 @@ scope: builtin
 ```
 
 ```prompt:media-tool-episode-sources
-检查指定视频集实际采用的原著章节，按关联顺序返回卷名、章节名、ID及缺失状态。只读，不修改关联或读取正文；正文使用 jizuo_read_chapter。参数为 input: {workId, episodeId}。
+检查指定视频集实际采用的原著章节，按关联顺序返回卷名、章节名、ID及缺失状态。只读，不修改关联。参数为 input: {workId, episodeId, includeContent?}；includeContent:true 时返回各关联章节的完整 content、sourceWorkId 和 currentRevisionToken，小说来源 ID 与目标视频 workId 分离。省略时仅返回元数据。来源缺失或超过 100 章/100000 总字符时明确失败，不截断。
 ```
 
 

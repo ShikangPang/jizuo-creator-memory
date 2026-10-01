@@ -59,7 +59,7 @@ export function registerVideoTools(ctx: ToolsContext, service: JizuoService & {v
     ctx.tools.register(definition as ToolDefinition);
   };
   register("jizuo_read_video_project",MEDIA_PROMPT_RULES["media-tool-3"],GetVideoProjectInput,input=>service.video.read(input.workId),true);
-  register("jizuo_read_video_episode_sources", MEDIA_PROMPT_RULES["media-tool-episode-sources"], UpdateVideoEpisodeInput.pick({workId:true,episodeId:true}), input=>readEpisodeSources(service,input), true);
+  register("jizuo_read_video_episode_sources", MEDIA_PROMPT_RULES["media-tool-episode-sources"], UpdateVideoEpisodeInput.pick({workId:true,episodeId:true}).extend({includeContent:z.boolean().optional()}), (input,signal)=>readEpisodeSources(service,input,signal), true);
   register("jizuo_replace_design_prompt",MEDIA_PROMPT_RULES["media-tool-4"],ReplaceDesignPromptInput,async input=>{
     if(!service.videoMedia)throw new JizuoError("runtime_unavailable","设定库尚未连接");
     return service.videoMedia.replaceDesignPrompt(input);

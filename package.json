@@ -1,6 +1,6 @@
 {
   "name": "@jizuo/memory-plugin",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "main": "./lib/index.js",
@@ -32,7 +32,7 @@
     "react": "18.3.1",
     "@deepseek-ai/dsh": "0.1.7-rc.1",
     "@deepseek-ai/dsh-tools": "0.1.7-rc.1",
-    "@jizuo/plugin": "0.2.0"
+    "@jizuo/plugin": "0.2.1"
   },
   "license": "MIT",
   "engines": {

@@ -7,7 +7,7 @@ DeepSeek Harness 创作插件：小说记忆与知识图谱。
 已验证的宿主版本：**DeepSeek Harness 0.1.7-rc.1**，Node.js >=22.19、pnpm 11.7。其他 Harness 版本暂不声明兼容，请勿强制跳过版本检查。
 
 ```sh
-dsh plugin --profile web add https://github.com/ShikangPang/jizuo-creator-writing/releases/download/v0.2.0/jizuo-plugin-0.2.0.tgz https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.2.0/jizuo-memory-plugin-0.2.0.tgz
+dsh plugin --profile web add https://github.com/ShikangPang/jizuo-creator-writing/releases/download/v0.2.1/jizuo-plugin-0.2.1.tgz https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.2.1/jizuo-memory-plugin-0.2.1.tgz
 dsh --profile web
 ```
 
