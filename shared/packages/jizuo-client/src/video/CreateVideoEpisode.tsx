@@ -1,5 +1,5 @@
 import { userErrorMessage } from "@jizuo/contracts";
-import { IconButton } from "../ui/IconButton.tsx";
+import "./create-video-episode.css";
 import { useState, type FormEvent } from "react";
 import type { VideoSourceChapter } from "@jizuo/contracts";
 import type { JizuoContentRemote } from "../content/remote.ts";
@@ -30,9 +30,9 @@ export function CreateVideoEpisode({ remote, workId, close }: { remote: JizuoCon
     } finally { setBusy(false); }
   };
   return <form className="jz-video-create" onSubmit={(event) => { void create(event); }}>
-    <input aria-label="视频集名称" placeholder="视频集名称" autoFocus maxLength={120} value={title} disabled={busy} onChange={(event) => setTitle(event.target.value)} />
+    <label className="jz-video-create-name"><span>视频集名称</span><input aria-label="视频集名称" placeholder="视频集名称" autoFocus maxLength={120} value={title} disabled={busy} onChange={(event) => setTitle(event.target.value)} /></label>
     <VideoSourcePicker remote={remote} workId={workId} value={sourceChapters} onChange={setSourceChapters} disabled={busy} />
-    <div><IconButton icon="close" label={"取消"} type="button" disabled={busy} onClick={close} /><IconButton icon="add" label={(busy ? "创建中…" : "创建")} type="submit" disabled={busy || !title.trim()} /></div>
+    <div className="jz-video-create-actions"><button type="button" disabled={busy} onClick={close}>取消</button><button className="jz-video-create-submit" type="submit" disabled={busy || !title.trim()}>{busy ? "创建中…" : "创建"}</button></div>
     {error && <p role="alert">{error}</p>}
   </form>;
 }

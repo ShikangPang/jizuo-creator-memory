@@ -156,7 +156,7 @@ body:has([data-plugin="jizuo"][data-surface="video-inspector"]) [data-width-hand
 }
 
 /* Keep production forms compact without changing player or timeline controls. */
-:is(.jz-video-design-library, .jz-video-shots, .jz-shot-controls, .jz-storyboard-shot-fields, .jz-video-assets, .jz-video-create) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select) {
+:is(.jz-video-design-library, .jz-video-shots, .jz-shot-controls, .jz-storyboard-shot-fields, .jz-video-assets) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select) {
   box-sizing: border-box;
   min-height: 30px;
   padding: 4px 7px;
