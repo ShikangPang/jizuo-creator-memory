@@ -56,3 +56,5 @@
   [data-surface="native-workspaces"] .jz-tree-actions,
   [data-surface="native-workspaces"] .jz-tree-row:not(:hover):not(:focus-within) .jz-tree-actions { position: static; opacity: 1; pointer-events: auto; }
 }
+
+[data-surface="native-workspaces"] .jz-tree-work .jz-tree-title { font-weight: inherit; }
