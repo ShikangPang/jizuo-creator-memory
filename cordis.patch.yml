@@ -1,0 +1,3 @@
+- insert:
+    - id: jizuo-memory
+      name: "@jizuo/memory-plugin"
