@@ -1,4 +1,5 @@
 import { userErrorMessage } from "@jizuo/contracts";
+import { ActionIcon } from "../ui/ActionIcon.tsx";
 import { IconButton } from "../ui/IconButton.tsx";
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode, type RefObject } from "react";
@@ -50,6 +51,7 @@ export function ComposerMediaReferences({ remote, project, composer, sessionId, 
   const kind = state.kind === "image" ? "image" : "video";
   const caps = resolveMediaInputCapabilities(config, kind);
   const addAnchor = useRef<HTMLDivElement>(null);
+  const uploadInput = useRef<HTMLInputElement>(null);
   const previewAnchor = useRef<HTMLElement | null>(null);
   const [preview, setPreview] = useState<{url: string; label: string; assetId: string} | null>(null);
   const [picker, setPicker] = useState<"image" | "video" | null>(null);
@@ -149,7 +151,11 @@ export function ComposerMediaReferences({ remote, project, composer, sessionId, 
         <IconButton icon="image" label={"参考图片"} type="button" aria-pressed={picker === "image"} onClick={() => setPicker("image")} />
         <IconButton icon="video" label={"添加参考视频"} type="button" aria-label="添加参考视频" aria-pressed={picker === "video"} onClick={() => setPicker("video")} />
       </div>}
-      {picker === "image" && remote.importVideoAsset && <label className="jz-composer-upload">上传图片<input aria-label="上传参考图片" type="file" accept="image/png,image/jpeg,image/webp" disabled={busy || disabled} onChange={importImage}/></label>}
+      {picker === "image" && remote.importVideoAsset && <div className="jz-composer-upload">
+        <input ref={uploadInput} hidden aria-label="上传参考图片" type="file" accept="image/png,image/jpeg,image/webp" disabled={busy || disabled} onChange={importImage}/>
+        <button className="jz-composer-upload-button" type="button" disabled={busy || disabled} onClick={() => uploadInput.current?.click()}><ActionIcon name="image"/><span>{busy ? "正在上传…" : "上传图片"}</span></button>
+        <small>PNG、JPEG 或 WebP，最大 10 MB</small>
+      </div>}
       {picker === "image" && (["character", "scene"] as const).map(designKind => {
         const groups = designGroups.filter(group => group.design.kind === designKind);
         return groups.length > 0 && <section key={designKind} aria-label={designKind === "character" ? "人物参考图" : "场景参考图"}>
@@ -164,7 +170,7 @@ export function ComposerMediaReferences({ remote, project, composer, sessionId, 
       })}
       {picker === "image" && ungrouped.length > 0 && designGroups.length > 0 && <strong>其他图片</strong>}
       <div className="jz-composer-asset-options">{(picker === "image" ? ungrouped : available).map(asset => <button key={asset.id} type="button" disabled={busy || disabled} onClick={() => add(asset.id)}>{asset.kind === "video" ? "▶ " : "▧ "}{asset.label}</button>)}</div>
-      {!available.length && (picker !== "image" || !designGroups.length) && <small>暂无可选{picker === "image" ? "图片，可上传参考图。" : "视频。生成的视频可用作下一镜头的参考。"}</small>}
+      {!available.length && (picker !== "image" || !designGroups.length) && <small className="jz-composer-picker-empty">暂无可选{picker === "image" ? "图片，可上传参考图。" : "视频。生成的视频可用作下一镜头的参考。"}</small>}
       {picker === "video" && <small>支持带有效远程链接的 MP4 生成视频；单段 2–15 秒，合计不超过 15 秒。服务方链接过期后需重新获取，本地片段暂不支持上传。</small>}
     </ReferencePickerPopover>}
     {(error || capabilityError) && <ComposerReferenceNotice message={error || capabilityError!}/>}
