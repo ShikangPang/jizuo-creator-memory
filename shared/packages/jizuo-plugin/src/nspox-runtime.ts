@@ -105,6 +105,7 @@ export class HarnessHostedModelRuntime implements HostedModelRuntime {
   constructor(
     private readonly settings: SettingsStore,
     private readonly agentDefaultModel: AgentDefaultModelStore,
+    private readonly options: {autoSelect?: boolean; displayName?: string} = {},
   ) {}
 
   async sync(models: HostedModel[]): Promise<void> {
@@ -124,7 +125,7 @@ export class HarnessHostedModelRuntime implements HostedModelRuntime {
         op: "set" as const,
         path: ["providers", "nspox"],
         value: {
-          displayName: "NSPOX",
+          displayName: this.options.displayName ?? "NSPOX",
           apiKeyEnv: NSPOX_ACCESS_TOKEN_REF,
           api: "openai-completions",
           baseURL: "https://www.nspox.com/v1",
@@ -148,7 +149,7 @@ export class HarnessHostedModelRuntime implements HostedModelRuntime {
       }
     }
     const selected = this.agentDefaultModel.currentSelection();
-    if (selected.provider !== "nspox" || !this.availableModelIds.has(selected.model)) {
+    if (this.options.autoSelect !== false && (selected.provider !== "nspox" || !this.availableModelIds.has(selected.model))) {
       await this.agentDefaultModel.saveSelection({
         provider: "nspox",
         model: enabled[0]!.id,
@@ -169,6 +170,7 @@ export class HarnessHostedModelRuntime implements HostedModelRuntime {
 
   async clear(): Promise<void> {
     this.availableModelIds.clear();
+    if (this.settings.get && !(this.settings.get(PI_AI_SETTINGS_NAMESPACE) as {providers?: {nspox?: unknown}} | undefined)?.providers?.nspox) return;
     await this.settings.mutate(PI_AI_SETTINGS_NAMESPACE, [{
       op: "unset",
       path: ["providers", "nspox"],

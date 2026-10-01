@@ -30,12 +30,14 @@ import type { HostedModelRuntime } from "./nspox-runtime.ts";
 import type { JizuoDomainNodeRegistry } from "./workflow/domainRegistry.ts";
 
 export interface AccountGatewayPort {
+  cancelBrowserLogin?(): void;
   beginBrowserLogin(): Promise<{ authorizationUrl: string; expiresAt: number }>;
   getAccountSummary(): Promise<AccountSummary>;
   logout(): Promise<void>;
 }
 
 export interface JizuoServiceOptions extends WorkDomainOptions {
+  accountEnabled?: boolean;
   settingsRoot?: string;
   protectedWorkRoots?: readonly string[];
   accountGateway?: AccountGatewayPort;
@@ -73,6 +75,27 @@ export class JizuoService extends MultiRootWorkDomainService {
   private readonly accountGateway: AccountGatewayPort;
   private readonly modelSettings: ModelSettingsRepository;
   private readonly hostedModels: HostedModelRuntime;
+  private accountEnabled = true;
+  private accountEpoch = 0;
+  private accountModelsTail: Promise<unknown> = Promise.resolve();
+
+  isAccountEnabled(): boolean { return this.accountEnabled; }
+  async setAccountEnabled(enabled: boolean): Promise<void> {
+    this.accountEnabled = enabled;
+    this.accountEpoch++;
+    if (!enabled) {
+      this.accountGateway.cancelBrowserLogin?.();
+      await this.updateAccountModels(() => this.hostedModels.clear());
+    }
+  }
+  private requireAccount(epoch = this.accountEpoch): void {
+    if (!this.accountEnabled || epoch !== this.accountEpoch) throw new JizuoError("denied", "请先启用即作账号插件");
+  }
+  private updateAccountModels<T>(action: () => Promise<T>): Promise<T> {
+    const result = this.accountModelsTail.then(action);
+    this.accountModelsTail = result.catch(() => {});
+    return result;
+  }
   private workflowDomainRegistry: JizuoDomainNodeRegistry | undefined;
 
   constructor(options: JizuoServiceOptions) {
@@ -102,6 +125,7 @@ export class JizuoService extends MultiRootWorkDomainService {
     });
     this.accountGateway = accountGateway ?? new AccountGateway();
     this.hostedModels = hostedModels ?? NOOP_HOSTED_MODELS;
+    this.accountEnabled = options.accountEnabled ?? true;
     this.modelSettings = new ModelSettingsRepository(resolvedSettingsRoot);
     this.chatMediaRepository = new ChatMediaRepository(resolvedSettingsRoot);
     this.video = new VideoRepository((workId) => this.resolveMediaPath(workId));
@@ -134,13 +158,17 @@ export class JizuoService extends MultiRootWorkDomainService {
   }
 
   async getAccountState() {
+    this.requireAccount();
+    const epoch = this.accountEpoch;
     try {
       const summary = await this.accountGateway.getAccountSummary();
-      await this.hostedModels.sync(summary.modelEntitlements);
+      this.requireAccount(epoch);
+      await this.updateAccountModels(() => { this.requireAccount(epoch); return this.hostedModels.sync(summary.modelEntitlements); });
       return { kind: "signed-in" as const, summary };
     } catch (error) {
+      this.requireAccount(epoch);
       if (error instanceof JizuoError && error.code === "credential_required") {
-        await this.hostedModels.clear();
+        await this.updateAccountModels(() => this.hostedModels.clear());
         return { kind: "signed-out" as const };
       }
       if (error instanceof JizuoError && error.code === "runtime_unavailable") {
@@ -151,15 +179,23 @@ export class JizuoService extends MultiRootWorkDomainService {
   }
 
   async beginBrowserLogin() {
+    this.requireAccount();
+    const epoch = this.accountEpoch;
     const login = await this.accountGateway.beginBrowserLogin();
+    if (epoch !== this.accountEpoch || !this.accountEnabled) {
+      this.accountGateway.cancelBrowserLogin?.();
+      this.requireAccount(epoch);
+    }
     return { authorizationUrl: login.authorizationUrl, expiresAt: login.expiresAt };
   }
 
   async logoutAccount(): Promise<{ signedOut: true }> {
+    this.requireAccount();
+    this.accountEpoch++;
     try {
       await this.accountGateway.logout();
     } finally {
-      await this.hostedModels.clear();
+      await this.updateAccountModels(() => this.hostedModels.clear());
     }
     return { signedOut: true };
   }
@@ -169,11 +205,18 @@ export class JizuoService extends MultiRootWorkDomainService {
   }
 
   async selectHostedModel(modelId: string): Promise<{ saved: true }> {
+    this.requireAccount();
+    const epoch = this.accountEpoch;
     const summary = await this.accountGateway.getAccountSummary();
+    this.requireAccount(epoch);
     const allowed = summary.modelEntitlements.some((model) => model.id === modelId && model.enabled);
     if (!allowed) throw new JizuoError("denied", "当前账号无权使用该托管模型");
-    await this.hostedModels.sync(summary.modelEntitlements);
-    await this.hostedModels.select(modelId);
+    await this.updateAccountModels(async () => {
+      this.requireAccount(epoch);
+      await this.hostedModels.sync(summary.modelEntitlements);
+      this.requireAccount(epoch);
+      await this.hostedModels.select(modelId);
+    });
     const current = await this.modelSettings.read();
     await this.modelSettings.write({ ...current, selectedHostedModelId: modelId });
     return { saved: true };

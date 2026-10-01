@@ -120,15 +120,20 @@ async function applyCreationRuntime(ctx: Context, config: ConfigShape): Promise<
       operations,
       revision,
     ),
-  }, ctx.agentDefaultModel);
+  }, ctx.agentDefaultModel, {autoSelect: config.hostUi !== "native", displayName: config.hostUi === "native" ? "即作" : "NSPOX"});
   const service = new JizuoService({
     worksRoot: config.worksRoot,
     settingsRoot: config.settingsRoot,
     protectedWorkRoots: [resolveWorkflowResourceRoot()],
     accountGateway: new AccountGateway({ vault }),
     hostedModels,
+    accountEnabled: config.hostUi !== "native",
   });
-  const nspoxMedia = new NspoxMediaClient(vault);
+  // Settings edits wait for Loader reconciliation. A plugin lifecycle must not
+  // await that reconciliation while the Loader is waiting for this plugin.
+  if (config.hostUi === "native") void service.setAccountEnabled(false).catch(() => {});
+  ctx.effect(() => () => { void service.setAccountEnabled(false).catch(() => {}); }, "jizuo-account-lifecycle");
+  const nspoxMedia = new NspoxMediaClient({get: () => service.isAccountEnabled() ? vault.get() : Promise.resolve(undefined)});
   service.mediaSettings = new MediaSettingsRepository(config.settingsRoot, {
     resolve: async (ref) => ref.startsWith(NSPOX_MEDIA_REF_PREFIX) ? nspoxMedia.resolveCredential(ref) : (await ctx.credentials.resolve(credentialRef(ref)))?.value,
     set: async (ref, value) => ctx.credentials.set(credentialRef(ref), value),
@@ -183,7 +188,7 @@ async function applyCreationRuntime(ctx: Context, config: ConfigShape): Promise<
   service.dreamHost = dream;
   ctx.effect(() => { dream.start(); return () => dream.close(); }, "jizuo-dream-memory");
   const remoteService = new JizuoRemoteService(ctx, service, workflow?.runs, new HarnessModelOutputSettings(ctx.llm, ctx.settings), dreamModels);
-  ctx.inject(["tools"], (toolsContext) => {
+  if (config.hostUi !== "native") ctx.inject(["tools"], (toolsContext) => {
     registerChatMediaTools(toolsContext as unknown as ToolsContext, service.chatMedia!, () => ctx.get("attachments") as ChatAttachmentReader | undefined);
   });
   ctx.provide("jizuoCreationHost", { service, apis: remoteService.creationApis, workflowChapterWrites: workflow?.workflowChapterWrites });

@@ -1,4 +1,5 @@
 import * as selection from "../../jizuo-client/src/content/selection.ts";
+import { registerCreationExtension } from "./creation-extensions.ts";
 import * as shellChrome from "../../jizuo-client/src/overlay/shellChrome.ts";
 import * as preferences from "../../jizuo-client/src/plugins/preferences.ts";
 import * as videoProject from "../../jizuo-client/src/video/useVideoProject.ts";
@@ -31,4 +32,4 @@ export function subscribeCreationPanels(listener: () => void) {
   listeners.add(listener); return () => { listeners.delete(listener); };
 }
 /** Explicit shared browser state: never rebundle these stores in feature factories. */
-export const creationClientApi = { selection, shellChrome, preferences, videoProject, registerPanels: registerCreationPanels };
+export const creationClientApi = { selection, shellChrome, preferences, videoProject, registerPanels: registerCreationPanels, registerExtension: registerCreationExtension };

@@ -1,6 +1,7 @@
 import { StorageLocation } from "../../jizuo-client/src/settings/WorkStorageSettings.tsx";
+import { registerForCreationExtension, creationExtensionEnabled, subscribeCreationExtensions } from "./creation-extensions.ts";
 import { NativeWorkspaces } from "./native-workspaces.tsx";
-import { WORKSPACE_PLUGINS, type WorkspacePluginId } from "../../jizuo-client/src/plugins/registry.ts";
+import { WORKSPACE_PLUGINS } from "../../jizuo-client/src/plugins/registry.ts";
 import { subscribeWorkspacePlugins, isBuiltinPluginEnabled } from "../../jizuo-client/src/plugins/preferences.ts";
 import type { NativeShellHost, NativeShellSlots } from "./shell-host.ts";
 import { BuiltinPluginsSettings } from "../../jizuo-client/src/plugins/BuiltinPluginsSettings.tsx";
@@ -132,6 +133,7 @@ import type {
 
 import {
   createAccountRemote,
+  createNativeAccountRemote,
   desktopControlToken,
   type AccountHostRemote,
 } from "./account-client.ts";
@@ -725,20 +727,6 @@ export function registerComposerModelTypeControl(
   }, ComposerModelTypeControl));
 }
 
-/** Match optional UI lifetimes to the separately loaded feature clients. */
-function registerForCreationFeature(id: WorkspacePluginId, install: () => () => void): () => void {
-  let stop: (() => void) | undefined;
-  const sync = () => {
-    const enabled = !!creationPanels(id) && isBuiltinPluginEnabled(id);
-    if (enabled && !stop) stop = install();
-    else if (!enabled && stop) { stop(); stop = undefined; }
-  };
-  const stopPanels = subscribeCreationPanels(sync);
-  const stopPreferences = subscribeWorkspacePlugins(sync);
-  sync();
-  return () => { stopPanels(); stopPreferences(); stop?.(); };
-}
-
 export function registerNativeShellContributions(
   host: NativeShellHost,
   {
@@ -759,10 +747,9 @@ export function registerNativeShellContributions(
     hostUi = "jizuo",
   }: NativeShellDependencies,
 ): () => void {
-  const feature = (id: WorkspacePluginId, install: () => () => void) => hostUi === "native"
-    ? registerForCreationFeature(id, install) : install();
   const stopLocalDirectory = registerLocalDirectoryQuery(remote);
-  const stopVideoComposer = videoComposer ? feature("video", () => host.slots.inject("conversation.input.left", () => host.slots.register({
+  const extension = (id: "account" | "media-models", install: () => () => void) => hostUi === "native" ? registerForCreationExtension(id, install) : install();
+  const stopVideoComposer = videoComposer ? extension("media-models", () => host.slots.inject("conversation.input.left", () => host.slots.register({
     name: "conversation.input.left", id: "jizuo-main-video-composer", order: -21,
     inject: () => ({ remote, composer: videoComposer, draftImagesFor }),
   }, MainVideoComposerFooter))) : () => {};
@@ -887,20 +874,29 @@ export function registerNativeShellContributions(
     name: "settings.plugins.tab", id: "jizuo-creation-plugins", order: -10,
     label: () => "创作插件",
   }, BuiltinPluginsSettings));
-  const stopSettings = account && host.slots.inject("settings.section", () => host.slots.register({
-    name: "settings.section",
-    id: "account",
-    order: 5,
-    label: () => "账号",
-    inject: () => ({ account }),
-  }, JizuoSettingsCard));
+  const stopSettings = account && extension("account", () => {
+    const stops = [host.slots.inject("settings.section", () => host.slots.register({
+      name: "settings.section", id: hostUi === "native" ? "jizuo-account" : "account",
+      order: 5, label: () => "即作账号", inject: () => ({account}),
+    }, JizuoSettingsCard))];
+    if (hostUi === "native") stops.push(host.slots.inject("plugins.bundle.config", () => host.slots.register({
+      name: "plugins.bundle.config", key: "@jizuo/account-plugin", inject: () => ({account}),
+    }, JizuoSettingsCard)));
+    return () => stops.reverse().forEach(stop => stop());
+  });
   const stopModelOutputs = modelOutputs ? ["llm-pi-ai", "llm-deepseek"].map((key) => host.slots.inject("settings.models.provider-card", () => host.slots.register({
     name: "settings.models.provider-card", key, inject: () => ({ remote: modelOutputs }),
   }, ProviderModelsSettings))) : [];
-  const stopMediaModels = mediaModels && feature("video", () => host.slots.inject("settings.models.footer", () => host.slots.register({
-    name: "settings.models.footer", id: "jizuo-media-models", order: 15,
-    inject: () => ({ remote: mediaModels }),
-  }, MediaModelsSettings)));
+  const stopMediaModels = mediaModels && extension("media-models", () => {
+    const stops = [host.slots.inject("settings.models.footer", () => host.slots.register({
+      name: "settings.models.footer", id: "jizuo-media-models", order: 15,
+      inject: () => ({ remote: mediaModels }),
+    }, MediaModelsSettings))];
+    if (hostUi === "native") stops.push(host.slots.inject("plugins.bundle.config", () => host.slots.register({
+      name: "plugins.bundle.config", key: "@jizuo/media-models-plugin", inject: () => ({remote: mediaModels}),
+    }, MediaModelsSettings)));
+    return () => stops.reverse().forEach(stop => stop());
+  });
   const stopDreamSettings = hostUi === "native" ? () => {} : host.slots.inject("settings.section", () => host.slots.register({
     name: "settings.section", id: "jizuo-dream-memory", order: 30, label: () => "梦境记忆",
     inject: () => ({ remote, subscribeWorksChanges }),
@@ -1000,7 +996,12 @@ export async function apply(ctx: Context, options: ClientOptions = {}): Promise<
       credentialRef,
       controlToken,
     }),
-  }) : undefined;
+  }) : createNativeAccountRemote(hostRemote, async url => {
+    const link = document.createElement("a");
+    link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer";
+    document.body.append(link);
+    try { link.click(); } finally { link.remove(); }
+  });
   let workflowSessions: WorkflowSessionSource | undefined;
   try {
     if (options.hostUi !== "native") workflowSessions = workflowSessionSource(ctx);
@@ -1052,7 +1053,7 @@ export async function apply(ctx: Context, options: ClientOptions = {}): Promise<
     subscribe: listener => { imageChatListeners.add(listener); return () => { imageChatListeners.delete(listener); }; },
   });
   const videoSlots: NativeShellSlots = options.hostUi === "native" ? {
-    inject: (name, install) => registerForCreationFeature("video", () => (ctx.slots as unknown as NativeShellSlots).inject(name, install)),
+    inject: (name, install) => registerForCreationExtension("media-models", () => (ctx.slots as unknown as NativeShellSlots).inject(name, install)),
     register: (registration, component) => (ctx.slots as unknown as NativeShellSlots).register(registration, component),
   } : ctx.slots as unknown as NativeShellSlots;
   const stopImageChat = videoSlots.inject("conversation.chat.media", () =>
@@ -1085,6 +1086,7 @@ export async function apply(ctx: Context, options: ClientOptions = {}): Promise<
   // The dispatch subject is the submitting session, including background
   // sessions; do not route from whichever conversation happens to be visible.
   const stopMediaSubmit = ctx.on("jizuo/input-submit-route", function (this: Context) {
+    if (options.hostUi === "native" && !creationExtensionEnabled("media-models")) return undefined;
     const sessionId = ctx.sessions.scopeOf(this);
     return sessionId === undefined ? undefined : videoComposer.submissionRoute(sessionId);
   });
@@ -1150,7 +1152,13 @@ export async function apply(ctx: Context, options: ClientOptions = {}): Promise<
       if (!binding) return;
       const directory = directories.directoryFor(sessionId);
       const stop = bridgeComposerTextModelBlock({
-        mode: { getSnapshot: () => videoComposer.getSnapshot(sessionId), subscribe: listener => videoComposer.subscribe(sessionId, listener) },
+        mode: {
+          getSnapshot: () => options.hostUi === "native" && !creationExtensionEnabled("media-models") ? {kind: "text"} : videoComposer.getSnapshot(sessionId),
+          subscribe: listener => {
+            const a = videoComposer.subscribe(sessionId, listener), b = subscribeCreationExtensions(listener);
+            return () => {a();b();};
+          },
+        },
         directory: directory.store, block: scope.conversation.blocks.storeFor(sessionId),
         setBlock: value => scope.conversation.blocks.set(sessionId, value),
         textModelBlockReason: () => modelText("blocked.composer"),

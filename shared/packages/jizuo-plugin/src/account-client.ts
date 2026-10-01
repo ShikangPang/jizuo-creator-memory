@@ -25,6 +25,26 @@ export interface AccountHostRemote {
   saveByok(request: ByokSettings): Promise<RemoteAnswer<{ saved: true }>>;
 }
 
+/** Official Desktop/Web uses Host-owned credentials and browser authorization. */
+export function createNativeAccountRemote(
+  host: Pick<AccountHostRemote, "accountGetState" | "accountBeginBrowserLogin" | "accountLogout">,
+  openExternal: (url: string) => Promise<void>,
+): AccountRemote {
+  return {
+    getState: async () => unwrap(await host.accountGetState({}), "账号状态加载失败"),
+    beginBrowserLogin: async () => {
+      const result = unwrap(await host.accountBeginBrowserLogin({}), "浏览器登录启动失败");
+      return {authorizationUrl: result.authorizationUrl};
+    },
+    openExternal: async raw => {
+      const url = new URL(raw);
+      if (url.origin !== "https://www.nspox.com" || url.username || url.password || url.hash) throw new Error("登录地址未通过安全校验");
+      await openExternal(url.href);
+    },
+    logout: async () => { unwrap(await host.accountLogout({}), "退出账号失败"); },
+  };
+}
+
 export interface AccountPlatform {
   currentUrl(): string;
   openExternal(url: string): Promise<void>;

@@ -21,7 +21,7 @@ const check = spawnSync(dsh, ['--version'], { encoding: 'utf8', shell: process.p
 if (check.status !== 0 || check.stdout.trim() !== harnessVersion) {
   throw new Error('This release requires DeepSeek Harness ' + harnessVersion + '. Use the dsh command supplied by the matching Desktop release, or for Web install @deepseek-ai/dsh@' + harnessVersion);
 }
-const features = args.includes('--all') ? ['writing', 'video', 'memory'] : [feature];
+const features = args.includes('--all') ? ['writing', 'video', 'memory', 'account', 'media-models'] : [feature];
 if (args.includes('--local') && features.length > 1) throw new Error('--local installs this repository only; omit --all.');
 const url = (repo, file) => 'https://github.com/ShikangPang/jizuo-creator-' + repo + '/releases/download/v' + version + '/' + file;
 const packages = args.includes('--local')

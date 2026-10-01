@@ -343,6 +343,8 @@ export class AccountGateway {
     server.close();
   }
 
+  cancelBrowserLogin(): void { this.closePendingLogin(); }
+
   private closePendingLogin(): void {
     const pending = this.pendingLogin;
     this.pendingLogin = undefined;
