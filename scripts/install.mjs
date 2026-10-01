@@ -24,9 +24,8 @@ if (check.status !== 0 || check.stdout.trim() !== harnessVersion) {
 const features = args.includes('--all') ? ['writing', 'video', 'memory'] : [feature];
 if (args.includes('--local') && features.length > 1) throw new Error('--local installs this repository only; omit --all.');
 const url = (repo, file) => 'https://github.com/ShikangPang/jizuo-creator-' + repo + '/releases/download/v' + version + '/' + file;
-const coreName = 'jizuo-plugin-' + version + '.tgz';
 const packages = args.includes('--local')
-  ? [resolve(root, 'core', coreName), resolve(root, 'jizuo-' + feature + '-plugin-' + version + '.tgz')]
+  ? [resolve(root, 'jizuo-' + feature + '-plugin-' + version + '.tgz')]
   : features.map(name => url(name, 'jizuo-' + name + '-plugin-' + version + '.tgz'));
 const result = spawnSync(dsh, ['plugin', '--profile', profile, 'add', ...packages], { stdio: 'inherit', shell: process.platform === 'win32' });
 if (result.error) throw result.error;

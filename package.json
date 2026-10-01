@@ -1,6 +1,6 @@
 {
   "name": "@jizuo/memory-plugin",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "main": "./lib/index.js",
@@ -30,7 +30,7 @@
     }
   },
   "dependencies": {
-    "@jizuo/plugin": "https://github.com/ShikangPang/jizuo-creator-writing/releases/download/v0.3.0/jizuo-plugin-0.3.0.tgz"
+    "@jizuo/plugin": "0.3.1"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.4",
@@ -42,6 +42,9 @@
   "engines": {
     "node": ">=22.19.0"
   },
+  "bundledDependencies": [
+    "@jizuo/plugin"
+  ],
   "peerDependenciesMeta": {
     "@deepseek-ai/cordis": {
       "optional": true

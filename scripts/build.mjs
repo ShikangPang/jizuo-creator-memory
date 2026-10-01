@@ -45,3 +45,14 @@ if (process.argv[2] !== 'typecheck') {
     }
   }
 }
+
+// Standard bundledDependencies keep installation self-contained; no URL subdependency.
+if (process.argv[2] !== 'typecheck') {
+  const bundled = resolve(root, 'node_modules/@jizuo/plugin');
+  rmSync(bundled, { recursive: true, force: true });
+  mkdirSync(dirname(bundled), { recursive: true });
+  cpSync(resolve(root, 'core'), bundled, { recursive: true, filter: file => sourceFileForBundle(file) });
+}
+function sourceFileForBundle(file) {
+  return !basename(file).startsWith('._') && basename(file) !== '.DS_Store' && !file.endsWith('.tgz');
+}
