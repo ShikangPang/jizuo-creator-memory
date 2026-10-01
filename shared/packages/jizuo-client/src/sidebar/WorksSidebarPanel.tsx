@@ -605,8 +605,9 @@ export function WorksSidebarPanel({
     </form>
   );
 
-  const renderMenu = (target: TreeTarget) => menuTarget !== null && targetKey(menuTarget) === targetKey(target) && (
+  const renderMenu = (target: TreeTarget, onCreate?: () => void, createLabel?: string) => menuTarget !== null && targetKey(menuTarget) === targetKey(target) && (
     <div className="jz-row-menu" role="menu" aria-label={`${target.title}操作`}>
+      {onCreate && createLabel && <MenuAction icon={target.kind === "work" ? "folder" : "document"} label={createLabel} type="button" role="menuitem" onClick={() => { setMenuTarget(null); onCreate(); }} />}
       {target.kind === "work" && <>
         {pluginEnabled(target.workId, "writing") && remote.searchWork && <MenuAction icon="search" label={"全书搜索"} type="button" role="menuitem" onClick={() => { setMenuTarget(null); setWorkTool({ ...target, mode: "search" }); }} />}
         {pluginEnabled(target.workId, "writing") && remote.exportWork && <MenuAction icon="export" label={"导出作品"} type="button" role="menuitem" onClick={() => { setMenuTarget(null); setWorkTool({ ...target, mode: "export" }); }} />}
@@ -628,11 +629,6 @@ export function WorksSidebarPanel({
 
   const renderActions = (target: TreeTarget, onCreate?: () => void, createLabel?: string) => (
     <div className="jz-tree-actions">
-      {onCreate !== undefined && createLabel !== undefined && (
-        <button type="button" className="jz-row-action" aria-label={createLabel} onClick={onCreate}>
-          <Icon name="plus" />
-        </button>
-      )}
       <button
         type="button"
         className="jz-row-action"
@@ -644,7 +640,8 @@ export function WorksSidebarPanel({
       >
         <Icon name="more" />
       </button>
-      {renderMenu(target)}
+      {target.kind === "work" && sessionNavigation && <button type="button" className="jz-row-action" aria-label={`在${target.title}新建对话`} disabled={sessionBusy} onClick={() => { void openConversation(target.workId, true); }}><Icon name="plus" /></button>}
+      {renderMenu(target, onCreate, createLabel)}
     </div>
   );
 
@@ -739,7 +736,6 @@ export function WorksSidebarPanel({
                         <span className="jz-tree-kind work" title={work.projectKind === "video" ? "视频项目" : "小说项目"} aria-hidden="true"><ActionIcon name={work.projectKind === "video" ? "video" : "novel"} className="jz-icon" /></span>
                         <span className="jz-tree-title">{work.title}</span>
                       </button>
-                      {workspaceMode && sessionNavigation && <IconButton icon="chat" label={`在${work.title}新建对话`} className="jz-row-action jz-work-new-chat" disabled={sessionBusy} onClick={() => { void openConversation(work.id, true); }} />}
                       {renderActions(target, videoMode || !writingEnabled ? undefined : () => { beginCreate({ kind: "volume", workId: work.id }); }, videoMode || !writingEnabled ? undefined : "新建分卷")}
                     </>
                   )}
