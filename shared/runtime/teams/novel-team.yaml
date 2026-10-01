@@ -1,0 +1,31 @@
+schemaVersion: 1
+id: novel-team
+name: 即作小说编辑部
+coordinator: chief-editor
+# LangGraph is the sole scheduler for chapter-production. Team members only
+# execute the frozen node assignment and may not choose node order or write files.
+members:
+  - id: chief-editor
+    agent: ../agents/chief-editor.md
+    canWrite: true
+  - id: outline-planner
+    agent: ../agents/outline-planner.md
+    canWrite: false
+  - id: novel-writer
+    agent: ../agents/novel-writer.md
+    canWrite: false
+  - id: continuity-reviewer
+    agent: ../agents/continuity-reviewer.md
+    canWrite: false
+  - id: style-reviewer
+    agent: ../agents/style-reviewer.md
+    canWrite: false
+  - id: ai-trace-reviewer
+    agent: ../agents/ai-trace-reviewer.md
+    canWrite: false
+  - id: memory-extractor
+    agent: ../agents/memory-extractor.md
+    canWrite: false
+writePolicy:
+  chapterContent: host-direct-write-with-history
+  subagents: read-only-model-output

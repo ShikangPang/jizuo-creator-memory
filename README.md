@@ -1,26 +1,37 @@
 # jizuo-creator-memory
 
-DeepSeek Harness 原生创作插件，包名保持 `@jizuo/memory-plugin`。包含 Host 工具与领域接口、Web Client 面板。
+DeepSeek Harness 创作插件：小说记忆与知识图谱。
 
-## 构建
+## 安装
 
-需要 Git、Node.js >=22.19、pnpm 11.7.0，以及读取私有核心仓库的权限。无需先在此目录安装依赖。
+已验证的宿主版本：**DeepSeek Harness 0.1.7-rc.1**，Node.js >=22.19、pnpm 11.7。其他 Harness 版本暂不声明兼容，请勿强制跳过版本检查。
+
+```sh
+dsh plugin --profile web add https://github.com/ShikangPang/jizuo-creator-writing/releases/download/v0.2.0/jizuo-plugin-0.2.0.tgz https://github.com/ShikangPang/jizuo-creator-memory/releases/download/v0.2.0/jizuo-memory-plugin-0.2.0.tgz
+dsh --profile web
+```
+
+安装预构建包，不需要克隆私有仓库或在安装时编译插件。共享核心与所选插件一起安装；三个插件共用同一个核心。已有即作内置这些插件时，请勿重复安装。公开包不提供旧章节工作流及其原生 SQLite 扩展，普通写作、视频和记忆通过当前创作对话完成。不要在公开包配置中开启 chapterWorkflowEnabled。桌面即作原有工作流能力不受影响。
+
+也可以克隆本仓库后执行 `node scripts/install.mjs --all` 一次安装三个插件；指定 `--profile <name>` 选择现有 Web profile。该脚本检查宿主版本，仅通过 Harness 官方插件命令安装到指定 profile，不绕过版本检查。
+
+## 项目与来源
+
+小说与视频有独立项目及目录设置。视频通过引用小说的作品 ID、章节和版本生成剧本，目标视频目录与源小说目录分离。旧混合作品不自动搬迁或删除。删除或修改源小说不会删除视频项目；来源不可用时需重新选择。模型由 Harness 配置，调用图片/视频模型可能由相应服务商计费。
+
+## 开发与构建
 
 ```sh
 pnpm build
 pnpm pack
+pnpm pack:core
+node scripts/install.mjs --local
 ```
 
-构建脚本下载 `core-source.json` 固定提交，在忽略的 `.build/core` 中安装锁定依赖、覆盖本仓库源码、执行类型检查和构建，产出 `lib/index.js` 与 `lib/client.js`。`pnpm typecheck` 仅检查类型。不会修改已有即作工作目录。
+编辑 `src/`；`shared/` 附带必要共享源码、资源和公开 npm 锁文件。构建在 `.build/workspace` 内隔离进行，产生本插件和共享核心，完全不访问私有 Git 仓库。各仓库维护相同版本的共享源码快照，修改公共接口时需同步三个插件与核心版本。
 
-编辑 `src/`，构建配置位于 `build/`。公共 UI、契约及部分服务实现仍依赖固定版本的核心仓库；这属于独立版本管理的插件仓库，尚未完成全部源码依赖解耦。新增依赖或升级公共代码时需同步更新核心提交及锁文件。
+浏览器使用 Harness RPC，桌面专用账号、更新与原生文件对话框不在 Web 中调用。导入/导出需使用当前界面实际支持的入口。关闭插件不会删除项目或取消既有后台任务。
 
-本地构建可通过 `JIZUO_CORE_REPOSITORY=/绝对路径/jizuo-harness` 使用本地核心 Git 仓库；构建始终使用固定提交。离线缓存完整时可设置 `JIZUO_BUILD_OFFLINE=1`。
+卸载：`dsh plugin --profile web remove @jizuo/memory-plugin`。只有全部创作插件卸载后才可移除 `@jizuo/plugin`。
 
-## 接入 Harness
-
-安装构建后的 tarball，并使用 `cordis.patch.yml` 中的插件入口。必须先加载兼容版本的 `@jizuo/plugin` 核心，由其提供 `jizuoCreationHost` 和 `jizuoCreationClient`。仅安装通用 Harness 无法运行。保持原生模块名以兼容现有即作加载器；不要重复添加默认即作已经加载的插件。
-
-浏览器面板依赖共享核心状态，不能复制为第二个状态实例。关闭 UI 不删除数据或停止已有后台任务。原有 RPC 兼容入口仍由核心管理。
-
-仓库默认私有，未发布 npm，也不包含用户作品、账号配置或会话。
+源码许可证：MIT。此仓库不包含桌面发布工具、私有仓库历史、用户作品、账号配置或会话。

@@ -1,0 +1,8 @@
+.jz-inline-name-editor { flex: 1; min-width: 0; }
+.jz-inline-name-form { display: flex; align-items: center; gap: 3px; min-width: 0; margin: 0; padding: 3px 4px; }
+.jz-inline-name-editor .jz-inline-name-form input { flex: 1; min-width: 0; width: 0; box-sizing: border-box; height: 28px; margin: 0; padding: 3px 7px; font: inherit; color: inherit; background: var(--dsw-alias-bg-base, #fff); border: 1px solid var(--dsw-alias-border-l1, #cfd4da); border-radius: 6px; }
+.jz-inline-name-editor .jz-inline-name-form input:focus { outline: 2px solid var(--dsw-alias-brand-primary, #4775ec); outline-offset: 1px; }
+.jz-inline-name-form .jz-row-action { flex: 0 0 auto; padding: 3px; width: 26px; height: 26px; }
+.jz-inline-name-error { padding: 3px 6px; color: var(--dsw-alias-error-primary, #bb2921); font-size: 12px; overflow-wrap: anywhere; }
+.jz-video-editor .jz-asset-name-button, .jz-asset-name-button { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: text; overflow-wrap: anywhere; }
+.jz-video-editor .jz-asset-name-button:hover, .jz-asset-name-button:hover { background: transparent; text-decoration: underline dotted; text-underline-offset: 4px; }

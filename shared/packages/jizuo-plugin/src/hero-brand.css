@@ -1,0 +1,51 @@
+.jz-hero-headline {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+/* The native brand slot was sized for a non-shrinking icon, not a headline. */
+.jz-hero-headline > [class*="_fishHitbox"] {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.jz-hero-headline > [class*="_fishHitbox"] > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.jz-hero-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  flex: none;
+  width: max-content;
+  font-size: clamp(18px, 5cqi, 26px);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.jz-hero-brand > img {
+  flex: none;
+  width: 1.3em;
+  height: 1.3em;
+}
+
+.jz-hero-brand__motto {
+  min-width: 0;
+  text-align: center;
+}
+
+/* The product headline replaces the upstream title and preview badge. */
+.jz-hero-headline > [class*="_titleGroup"] {
+  display: none !important;
+}
+
+.jz-hero-brand--intro {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+}

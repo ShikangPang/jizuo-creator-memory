@@ -1,0 +1,8 @@
+.jz-builtin-plugins { padding: 20px; max-width: 760px; }
+.jz-builtin-plugins h2 { margin: 0 0 12px; font-size: 18px; }
+.jz-builtin-plugins p { font-size: 13px; line-height: 1.7; opacity: .75; }
+.jz-builtin-plugin { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); cursor: pointer; }
+.jz-builtin-plugin strong { font-size: 14px; }
+.jz-builtin-plugin small { display: block; margin-top: 5px; font-size: 12px; opacity: .7; }
+.jz-builtin-plugin input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: #6d5ce7; cursor: pointer; }
+.jz-builtin-plugin input:disabled { cursor: default; }

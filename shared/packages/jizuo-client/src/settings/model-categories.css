@@ -1,0 +1,4 @@
+.jz-model-categories { display: flex; gap: 4px; padding: 20px 20px 0; }
+.jz-model-categories button { color: var(--dsw-alias-label-secondary, #626872); padding: 8px 18px; background: transparent; border: 1px solid transparent; border-radius: 8px; font: inherit; cursor: pointer; }
+.jz-model-categories button[aria-selected="true"] { color: var(--dsw-alias-label-primary, #25282d); background: var(--dsw-alias-bg-l2, #f1f2f4); }
+.jz-model-categories button:focus-visible { outline: 2px solid var(--dsw-alias-label-secondary, #626872); outline-offset: 2px; }

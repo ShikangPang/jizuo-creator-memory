@@ -1,0 +1,80 @@
+.jz-workflow-progress-dock {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.jz-workflow-progress-dock > * { pointer-events: auto; }
+.jz-workflow-progress-error { margin: 0; color: #b9434b; font-size: 12px; }
+
+.jz-workflow-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 11px;
+  color: #5f6368;
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid rgba(24, 31, 43, .1);
+  border-radius: 18px;
+  box-shadow: 0 3px 14px rgba(32, 43, 61, .06);
+  font: inherit;
+  cursor: pointer;
+}
+
+.jz-workflow-progress-pill:hover { border-color: rgba(66, 112, 222, .34); }
+.jz-workflow-progress-pill-copy { display: inline-flex; align-items: baseline; gap: 6px; font-size: 14px; line-height: 18px; white-space: nowrap; }
+.jz-workflow-progress-pill-copy small { color: #8a9099; font-size: 12px; }
+.jz-workflow-progress-icon { width: 12px; height: 12px; display: inline-grid; place-items: center; color: #5e85e8; font-size: 18px; line-height: 12px; }
+.jz-workflow-progress-icon--blocked, .jz-workflow-progress-icon--failed { color: #c34d55; }
+.jz-workflow-progress-icon--completed { color: #36a269; }
+.jz-workflow-progress-icon--waiting_approval, .jz-workflow-progress-icon--waiting_decision { color: #d78a32; }
+.jz-workflow-progress-spinner { width: 9px; height: 9px; border: 2px solid #d8e6ff; border-top-color: currentColor; border-radius: 50%; animation: jz-workflow-spin .9s linear infinite; }
+@keyframes jz-workflow-spin { to { transform: rotate(360deg); } }
+
+.jz-workflow-run-popover, .jz-workflow-progress-loading {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 160px));
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid rgba(22, 29, 41, .16);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(31, 41, 55, .16);
+  color: #24292f;
+}
+
+.jz-workflow-progress-loading { width: auto; max-height: none; font-size: 13px; color: #68707c; }
+.jz-workflow-run-popover-header { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.jz-workflow-run-popover-header > div { display: grid; gap: 2px; }
+.jz-workflow-run-popover-header span, .jz-workflow-run-revision { margin: 0; color: #707782; font-size: 13px; }
+.jz-workflow-run-popover-close { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #f3f4f6; color: #4d5560; font-size: 20px; line-height: 20px; cursor: pointer; }
+.jz-workflow-run-revision { margin-top: 8px; }
+.jz-workflow-run-notice { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: #fff8eb; color: #815a1d; font-size: 13px; line-height: 1.5; }
+.jz-workflow-run-steps { display: grid; gap: 4px; margin: 12px 0; padding: 0; list-style: none; }
+.jz-workflow-run-step details { border-radius: 8px; }
+.jz-workflow-run-step summary { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 7px; align-items: center; padding: 6px; cursor: pointer; list-style: none; }
+.jz-workflow-run-step summary::-webkit-details-marker { display: none; }
+.jz-workflow-run-step summary > span:last-child { color: #737982; font-size: 12px; }
+.jz-workflow-step-dot { width: 8px; height: 8px; border: 1.5px solid #aab0b8; border-radius: 50%; }
+.jz-workflow-run-step--running .jz-workflow-step-dot, .jz-workflow-run-step--retrying .jz-workflow-step-dot { border-color: #4e7eed; background: #4e7eed; }
+.jz-workflow-run-step--completed .jz-workflow-step-dot { border-color: #36a269; background: #36a269; }
+.jz-workflow-run-step--warning .jz-workflow-step-dot { border-color: #d49a2f; background: #d49a2f; }
+.jz-workflow-run-step--warning details { background: #fffaf0; }
+.jz-workflow-run-step--blocked .jz-workflow-step-dot, .jz-workflow-run-step--failed .jz-workflow-step-dot { border-color: #c34d55; background: #c34d55; }
+.jz-workflow-run-step p { margin: 0 6px 8px 25px; color: #666d77; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.jz-workflow-run-actions { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 10px; border-top: 1px solid #edf0f3; }
+.jz-workflow-run-actions button { min-height: 30px; padding: 4px 9px; border: 1px solid #dfe3e8; border-radius: 8px; background: #fff; color: #344054; font: inherit; font-size: 13px; cursor: pointer; }
+.jz-workflow-run-actions button:disabled { opacity: .55; cursor: wait; }
+.jz-workflow-run-error { margin: 8px 0 0; color: #b9434b; font-size: 13px; }
+
+@media (max-width: 600px) {
+  .jz-workflow-progress-pill-copy small { display: none; }
+  .jz-workflow-run-popover { border-radius: 14px; }
+}

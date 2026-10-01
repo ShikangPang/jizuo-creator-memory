@@ -1,0 +1,38 @@
+{
+  "name": "@jizuo/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "dependencies": {
+    "@antv/g6": "^5.1.1",
+    "@jizuo/contracts": "workspace:*",
+    "@jizuo/memory-domain": "workspace:*",
+    "diff": "^9.0.0",
+    "react": "18.3.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/dsh-api-workspace-controller": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-input-trigger": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-layout": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-invariants": "0.1.7-rc.1"
+  },
+  "devDependencies": {
+    "@tsdown/css": "0.22.14",
+    "@types/react": "18.3.27",
+    "@types/react-dom": "18.3.7",
+    "tsdown": "0.22.14",
+    "typescript": "5.9.3"
+  }
+}

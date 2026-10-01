@@ -1,0 +1,26 @@
+{
+  "name": "@jizuo/workflow-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run tests",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@jizuo/contracts": "workspace:*",
+    "@langchain/core": "1.2.9",
+    "@langchain/langgraph": "1.4.12",
+    "@langchain/langgraph-checkpoint-sqlite": "1.0.3",
+    "better-sqlite3": "13.0.3",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
+    "typescript": "5.9.3"
+  }
+}

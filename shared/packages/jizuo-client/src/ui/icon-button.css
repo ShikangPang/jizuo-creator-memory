@@ -1,0 +1,39 @@
+:is(button, a)[aria-label]:is(.jz-icon-action, .jz-video-icon-button, :has(> .jz-video-tool-icon)) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--jz-icon-button-size, 32px);
+  height: var(--jz-icon-button-size, 32px);
+  min-width: var(--jz-icon-button-size, 32px);
+  min-height: var(--jz-icon-button-size, 32px);
+  text-decoration: none;
+  padding: 6px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow: none;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #687078);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+:is(button, a):is(.jz-icon-action, .jz-video-icon-button, :has(> .jz-video-tool-icon)):hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover, #f0f2f4);
+  color: var(--dsw-alias-label-primary, #202326);
+}
+:is(button, a):is(.jz-icon-action, .jz-video-icon-button, :has(> .jz-video-tool-icon)):is([aria-pressed="true"], [aria-selected="true"], [aria-expanded="true"]) {
+  background: var(--dsw-alias-fill-secondary, #eaf0f2);
+  color: var(--dsw-alias-label-primary, #202326);
+}
+:is(button, a):is(.jz-icon-action, .jz-video-icon-button, :has(> .jz-video-tool-icon)):focus-visible { outline: 2px solid var(--dsw-alias-border-focus, #167b83); outline-offset: 2px; }
+:is(button, a):is(.jz-icon-action, .jz-video-icon-button, :has(> .jz-video-tool-icon)):disabled { opacity: .35; cursor: default; }
+:is(button, a):is(.jz-icon-action, .jz-video-icon-button, :has(> .jz-video-tool-icon)) > svg { display: block; flex: none; pointer-events: none; }
+:is(button, a).jz-icon-action.jz-icon-action[aria-busy="true"] > svg { animation: jz-action-working 1.5s linear infinite; }
+@keyframes jz-action-working { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { :is(button, a).jz-icon-action.jz-icon-action[aria-busy="true"] > svg { animation: none; } }
+
+:is(button, a).jz-icon-action.jz-icon-action.danger { color: var(--dsw-alias-state-error, #b42318); }
+:is(button, a).jz-icon-action.jz-icon-action.danger.primary { color: #fff; background: var(--dsw-alias-state-error, #b42318); }
+
+@media (prefers-reduced-motion: reduce) { :is(button, a):is(.jz-icon-action, .jz-video-icon-button, :has(> .jz-video-tool-icon)) { transition: none; } }

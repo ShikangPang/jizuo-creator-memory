@@ -1,0 +1,9 @@
+.jz-video-production { padding: 8px 0 12px; border-bottom: 1px solid var(--dsw-alias-border-l1, #d8dce1); margin-bottom: 12px; }
+.jz-video-production > .jz-video-editor-heading { margin: 0; }
+.jz-video-production strong { font-size: 13px; font-weight: 500; }
+.jz-video-production .jz-video-tools > span { font-size: 11px; color: var(--dsw-alias-label-secondary, #687078); }
+.jz-video-production > details > summary { font-size: 11px; }
+.jz-production-status { font-size: 12px; margin-top: 6px; }
+.jz-production-status p { margin: 6px 0; }
+.jz-video-production label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 6px; }
+.jz-video-production select { margin-left: 8px; padding: 4px 8px; color: inherit; background: var(--dsw-alias-bg-base, #fff); border: 1px solid var(--dsw-alias-border-l1, #d8dce1); border-radius: 5px; font: inherit; }

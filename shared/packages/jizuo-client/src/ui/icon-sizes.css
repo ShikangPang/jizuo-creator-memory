@@ -1,0 +1,17 @@
+/* Shared geometry for functional icons; content SVGs and brand marks are excluded. */
+:root {
+  --jz-icon-size: 18px;
+  --jz-icon-button-size: 32px;
+}
+svg.jz-video-tool-icon {
+  width: var(--jz-icon-size);
+  height: var(--jz-icon-size);
+  flex-shrink: 0;
+}
+/* Native conversation actions share the same icon size as Jizuo actions. */
+[data-slot="conversation.composer.bar"] button svg,
+[data-jz-media-footer] button svg {
+  width: var(--jz-icon-size);
+  height: var(--jz-icon-size);
+  flex-shrink: 0;
+}

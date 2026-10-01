@@ -1,0 +1,17 @@
+/* Keep the settings entry legible and easy to target in narrow composers. */
+.jz-main-video-mode .jz-composer-generation-settings>button,.jz-composer-generation-settings>button{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;flex-shrink:0;box-sizing:border-box;max-width:100%;padding:8px;border:0;border-radius:6px;background:transparent;color:var(--text-secondary,#666b73);font:inherit;font-size:13px;white-space:nowrap;text-align:left;cursor:pointer}
+.jz-main-video-mode .jz-composer-generation-settings>button:hover:not(:disabled),.jz-composer-generation-settings>button:hover:not(:disabled),.jz-main-video-mode .jz-composer-generation-settings>button[aria-expanded=true],.jz-composer-generation-settings>button[aria-expanded=true]{background:var(--fill-tsp-gray-primary,#f1f2f3)}
+.jz-composer-generation-settings>button:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#6283ce);outline-offset:2px}
+
+.jz-generation-popover{position:fixed;z-index:10002;box-sizing:border-box;overflow:auto;border:1px solid var(--dsw-alias-border-primary,#e8e9eb);border-radius:16px;background:var(--dsw-alias-background-primary,#fff);color:var(--dsw-alias-label-primary,#25282d);box-shadow:0 8px 32px #0002;padding:16px;font:inherit;font-size:13px;display:flex;flex-direction:column;gap:16px}
+.jz-generation-heading{display:flex;justify-content:space-between;align-items:center}
+.jz-generation-popover button{font:inherit;color:inherit;cursor:pointer;border:1px solid transparent;background:transparent;border-radius:8px;padding:7px 10px}
+.jz-generation-popover fieldset{border:0;padding:0;margin:0;min-width:0}
+.jz-generation-popover legend{padding:0;margin-bottom:8px;color:var(--dsw-alias-label-secondary,#687078)}
+.jz-generation-choices{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--dsw-alias-background-secondary,#f6f7f8);border-radius:10px}
+.jz-generation-choices button{flex:1 0 auto;text-align:center}
+.jz-generation-choices button[aria-pressed=true]{background:var(--dsw-alias-background-primary,#fff);border-color:var(--dsw-alias-border-primary,#dcdfe4);box-shadow:0 1px 3px #0001}
+.jz-generation-popover button:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#6283ce);outline-offset:1px}
+.jz-generation-popover small,.jz-generation-popover p{color:var(--dsw-alias-label-secondary,#687078);margin:0;line-height:1.6}
+
+.jz-generation-popover details>summary{cursor:pointer;margin-bottom:8px}

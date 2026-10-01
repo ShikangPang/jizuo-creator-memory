@@ -1,0 +1,10 @@
+.jz-video-references { min-width: 0; border: 1px solid var(--dsw-alias-border-l1, #d8dce1); border-radius: 8px; padding: 10px; margin: 10px 0; }
+.jz-video-reference-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; }
+.jz-video-reference-grid figure { min-width: 0; margin: 0; }
+.jz-video-reference-grid .jz-video-asset-preview { height: 90px; border-radius: 5px; overflow: hidden; background: var(--dsw-alias-fill-secondary, #f4f5f6); }
+.jz-video-reference-grid .jz-video-asset-preview img { width: 100%; height: 100%; object-fit: contain; }
+.jz-video-reference-grid figcaption { margin: 4px 0; font-size: 12px; overflow-wrap: anywhere; }
+.jz-video-reference-grid .jz-video-reference-missing { min-height: 70px; display: flex; align-items: center; font-size: 12px; }
+.jz-video-reference-options { margin-top: 10px; max-height: 300px; overflow-y: auto; }
+.jz-video-references > button { margin-top: 8px; }
+.jz-video-references > small { display: block; }

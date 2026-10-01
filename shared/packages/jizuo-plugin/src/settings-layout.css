@@ -1,0 +1,57 @@
+/* Harness SettingsRoot owns navigation, focus and Escape. Scope the layout to
+   its nav/content structure so other dialogs retain their original sizing. */
+[role="dialog"][aria-modal="true"]:has(> nav[class*="_nav"] > [class*="_navList"]) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+[role="dialog"]:has(> nav[class*="_nav"] > [class*="_navList"]) > nav {
+  width: clamp(188px, 21vw, 280px);
+  gap: 24px;
+  padding: max(24px, var(--dsh-frame-top-clearance, 24px)) 16px 24px;
+  border-right: 1px solid var(--dsw-alias-border-l2, #e8e8e8);
+  background: var(--dsw-alias-bg-layer-1, #f7f8f9);
+}
+
+[role="dialog"]:has(> nav[class*="_nav"] > [class*="_navList"]) > [class*="_content"] {
+  background: var(--dsw-alias-bg-base, #fff);
+  min-height: 0;
+}
+
+[role="dialog"]:has(> nav[class*="_nav"] > [class*="_navList"]) > [class*="_content"] > [class*="_header"] {
+  height: auto;
+  min-height: 60px;
+  padding: max(16px, var(--dsh-frame-top-clearance, 16px)) 24px 12px;
+}
+
+[role="dialog"]:has(> nav[class*="_nav"] > [class*="_navList"]) > [class*="_content"] > [class*="_options"] {
+  padding: 0 clamp(20px, 4vw, 64px) 40px;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 600px) {
+  [role="dialog"]:has(> nav[class*="_nav"] > [class*="_navList"]) {
+    flex-direction: column;
+  }
+  [role="dialog"]:has(> nav[class*="_nav"] > [class*="_navList"]) > nav {
+    width: 100%;
+    gap: 12px;
+    padding: max(16px, var(--dsh-frame-top-clearance, 16px)) 16px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--dsw-alias-border-l2, #e8e8e8);
+  }
+  [role="dialog"] > nav[class*="_nav"] > [class*="_navList"] {
+    flex-direction: row;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  [role="dialog"] > nav[class*="_nav"] > [class*="_navList"] > button {
+    flex-shrink: 0;
+  }
+}

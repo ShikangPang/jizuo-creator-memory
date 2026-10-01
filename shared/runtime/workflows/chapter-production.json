@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "id": "chapter-production",
+  "version": "2.0.0",
+  "entry": "lock-target",
+  "budgets": {
+    "maxRevisionRounds": 5,
+    "hardMaxRevisionRounds": 10,
+    "maxSchemaRepairs": 2,
+    "maxTransientRetries": 2,
+    "noProgressRounds": 2
+  },
+  "nodes": [
+    { "id": "lock-target", "kind": "tool", "handler": "jizuo.lockChapterTarget", "uiGroup": "target" },
+    { "id": "initialize-chapter", "kind": "tool", "handler": "jizuo.initializeWorkflowChapter", "uiGroup": "target" },
+    { "id": "query-memory", "kind": "tool", "handler": "jizuo.queryMemory", "uiGroup": "memory-query" },
+    { "id": "plan", "kind": "agent", "agent": "outline-planner", "outputSchema": "chapter-plan.v1", "uiGroup": "planning" },
+    { "id": "write", "kind": "agent", "agent": "novel-writer", "outputSchema": "chapter-candidate.v1", "uiGroup": "writing" },
+    { "id": "verify", "kind": "tool", "handler": "jizuo.verifyAppliedChapter", "uiGroup": "verification" },
+    { "id": "extract-memory", "kind": "agent", "agent": "memory-extractor", "outputSchema": "chapter-memory.v2", "uiGroup": "memory-save" },
+    { "id": "save-memory", "kind": "tool", "handler": "jizuo.saveChapterMemory", "uiGroup": "memory-save" }
+  ],
+  "edges": [
+    { "from": "lock-target", "to": "initialize-chapter", "when": "always" },
+    { "from": "initialize-chapter", "to": "query-memory", "when": "always" },
+    { "from": "query-memory", "to": "plan", "when": "always" },
+    { "from": "plan", "to": "write", "when": "always" },
+    { "from": "write", "to": "verify", "when": "always" },
+    { "from": "verify", "to": "extract-memory", "when": "always" },
+    { "from": "extract-memory", "to": "save-memory", "when": "always" }
+  ],
+  "reviewStages": [
+    {
+      "id": "continuity",
+      "reviewer": "continuity-reviewer",
+      "reviser": "novel-writer",
+      "maxRevisionRounds": 5,
+      "hardMaxRevisionRounds": 10,
+      "onLimit": "continue_with_warnings"
+    },
+    {
+      "id": "style",
+      "reviewer": "style-reviewer",
+      "reviser": "novel-writer",
+      "maxRevisionRounds": 5,
+      "hardMaxRevisionRounds": 10,
+      "onLimit": "continue_with_warnings"
+    },
+    {
+      "id": "ai-trace",
+      "reviewer": "ai-trace-reviewer",
+      "reviser": "novel-writer",
+      "maxRevisionRounds": 5,
+      "hardMaxRevisionRounds": 10,
+      "onLimit": "continue_with_warnings"
+    }
+  ]
+}

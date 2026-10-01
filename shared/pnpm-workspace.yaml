@@ -1,0 +1,7 @@
+packages:
+  - packages/*
+nodeLinker: hoisted
+autoInstallPeers: true
+allowBuilds:
+  better-sqlite3: false
+  esbuild: false

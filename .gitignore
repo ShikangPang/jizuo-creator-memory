@@ -1,6 +1,10 @@
-node_modules/
+node_modules
 lib/
 .build/
+core/lib/
+core/runtime/
+core/README.md
+core/LICENSE
 *.tgz
 .DS_Store
 ._*

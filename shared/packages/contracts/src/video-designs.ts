@@ -1,0 +1,12 @@
+import { z } from "zod";
+import { StableId } from "./work.ts";
+import { VideoDesign, VideoAssetView } from "./video.ts";
+const target = { workId: StableId, expectedRevision: z.number().int().nonnegative() };
+export const SaveVideoDesignInput = z.object({ ...target, design: VideoDesign.omit({id:true,deletedAt:true}).extend({id:StableId.optional()}) }).strict();
+export type SaveVideoDesignInput = z.infer<typeof SaveVideoDesignInput>;
+export const ReplaceDesignPromptInput = z.object({ ...target, designId: StableId, prompt: z.string().trim().min(1).max(10000) }).strict();
+export type ReplaceDesignPromptInput = z.infer<typeof ReplaceDesignPromptInput>;
+export const TagVideoAssetInput = z.object({ ...target, assetId: StableId, designId: StableId, view: VideoAssetView }).strict();
+export type TagVideoAssetInput = z.infer<typeof TagVideoAssetInput>;
+export const ExtractVideoDesignsInput = z.object({ ...target, episodeId: StableId }).strict();
+export type ExtractVideoDesignsInput = z.infer<typeof ExtractVideoDesignsInput>;

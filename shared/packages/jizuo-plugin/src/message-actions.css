@@ -1,0 +1,26 @@
+/* Use the message width, since a docked work area can leave a narrow chat
+   even when the application window itself is wide. */
+[data-chat-flow-kind] [data-clock] {
+  container: jizuo-message-actions / inline-size;
+  min-width: 0;
+  font-size: var(--dsh-content-font-size, 14px);
+  flex-wrap: nowrap;
+}
+
+[data-chat-flow-kind] [data-clock] > * {
+  flex-shrink: 0;
+}
+
+@container jizuo-message-actions (width < 32em) {
+  [data-clock] > [class*="_timeStart"],
+  [data-clock] > [class*="_endInfo"] {
+    display: none;
+  }
+}
+
+/* Keep a single line, and hide the controls as a group at extreme widths. */
+@container jizuo-message-actions (width < 10em) {
+  [data-clock] > * {
+    display: none;
+  }
+}

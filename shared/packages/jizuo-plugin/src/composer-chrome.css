@@ -1,0 +1,37 @@
+/* Compact against the actual chat pane rather than the application window. */
+[data-composer-card] > [class*="_row"]:not([data-jz-media-footer]) {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+
+[data-composer-card] > [class*="_row"]:not([data-jz-media-footer]) > [class*="_tools"] {
+  flex-shrink: 0;
+}
+
+@container jizuo-composer (max-width: 420px) {
+  [data-composer-card] > [class*="_row"]:not([data-jz-media-footer]) {
+    gap: 4px;
+    --dsh-composer-model-text-display: none;
+    --dsh-composer-model-icon-display: block;
+  }
+
+  [data-composer-card] > [class*="_row"]:not([data-jz-media-footer]) :is([class*="_tools"], [class*="_modes"], [class*="_trailing"], [class*="_standardControls"]) {
+    gap: 4px;
+  }
+
+  [data-composer-card] > [class*="_row"]:not([data-jz-media-footer]) .jz-composer-type-trigger {
+    padding-inline: 4px;
+  }
+}
+
+[class*="_heroWorkspaceRow"] {
+  container: jizuo-workspace-row / inline-size;
+}
+
+@container jizuo-workspace-row (max-width: 420px) {
+  [class*="_heroWorkspaceRow"] [class*="_workspaceLabel"] {
+    display: none;
+  }
+}

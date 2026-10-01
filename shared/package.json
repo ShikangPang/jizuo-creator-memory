@@ -1,0 +1,15 @@
+{
+  "name": "jizuo-creator-shared-source",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "5.9.3",
+    "tsdown": "0.22.14",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@types/react": "18.3.27",
+    "@types/react-dom": "18.3.7"
+  }
+}

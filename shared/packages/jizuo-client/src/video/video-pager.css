@@ -1,0 +1,4 @@
+.jz-video-pager { display: flex; align-items: center; gap: 10px; margin: 14px 0; padding: 10px 0; border-bottom: 1px solid var(--dsw-alias-border-l1, #e6e7e9); }
+.jz-video-pager select { flex: 1; width: 0; min-width: 0; max-width: 420px; }
+.jz-video-pager > span { white-space: nowrap; font-size: 12px; color: var(--dsw-alias-label-secondary, #687078); font-variant-numeric: tabular-nums; }
+.jz-video-pager button { min-width: 34px; }

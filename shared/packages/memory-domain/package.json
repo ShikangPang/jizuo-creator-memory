@@ -1,0 +1,24 @@
+{
+  "name": "@jizuo/memory-domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas": "./src/types.ts"
+  },
+  "scripts": {
+    "test": "vitest run tests",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@jizuo/contracts": "workspace:*",
+    "@jizuo/work-domain": "workspace:*",
+    "yaml": "^2.8.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
