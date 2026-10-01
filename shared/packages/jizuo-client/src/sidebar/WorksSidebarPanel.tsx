@@ -1,4 +1,4 @@
-import { WritingTree } from "../plugins/WritingTree.tsx";
+import { volumeTreeKey, WritingTree } from "../plugins/WritingTree.tsx";
 import { ProjectFeatures } from "../plugins/ProjectFeatures.tsx";
 import { isBuiltinPluginEnabled, isWorkspacePluginAvailable, useWorkspacePlugins } from "../plugins/preferences.ts";
 import { userErrorMessage } from "@jizuo/contracts";
@@ -120,7 +120,11 @@ export function WorksSidebarPanel({
   const [volumes, setVolumes] = useState<Record<string, VolumeSummary[]>>({});
   const [chapters, setChapters] = useState<Record<string, ChapterSummary[]>>({});
   const [expandedWorkId, setExpandedWorkId] = useState<string | null>(null);
-  const [expandedVolumeId, setExpandedVolumeId] = useState<string | null>(null);
+  const [expandedVolume, setExpandedVolume] = useState<{ workId: string; volumeId: string } | null>(null);
+  const expandedVolumeId = expandedVolume?.workId === expandedWorkId ? expandedVolume.volumeId : null;
+  const setExpandedVolumeId = (volumeId: string | null, workId = expandedWorkId) => {
+    setExpandedVolume(volumeId && workId ? {workId, volumeId} : null);
+  };
   const [createTarget, setCreateTarget] = useState<CreateTarget | null>(null);
   const [createTitle, setCreateTitle] = useState("");
   const [menuTarget, setMenuTarget] = useState<TreeTarget | null>(null);
@@ -193,13 +197,13 @@ export function WorksSidebarPanel({
   }, [selection.workId, remote, pluginEnabled(selection.workId, "writing")]);
 
   useEffect(() => {
-    if (selection.volumeId && selection.chapterId) setExpandedVolumeId(selection.volumeId);
-  }, [selection.volumeId, selection.chapterId]);
+    if (selection.workId && selection.volumeId && selection.chapterId) setExpandedVolumeId(selection.volumeId, selection.workId);
+  }, [selection.workId, selection.volumeId, selection.chapterId]);
 
   const loadChapters = async (workId: string, volumeId: string): Promise<void> => {
     try {
       const items = await remote.listChapters({ workId, volumeId });
-      setChapters((current) => ({ ...current, [volumeId]: items }));
+      setChapters((current) => ({ ...current, [volumeTreeKey(workId, volumeId)]: items }));
     } catch (cause) {
       setError(messageOf(cause));
     }
@@ -218,7 +222,7 @@ export function WorksSidebarPanel({
           workId: expandedWorkId,
           volumeId: expandedVolumeId,
         });
-        if (active) setChapters((current) => ({ ...current, [expandedVolumeId]: items }));
+        if (active) setChapters((current) => ({ ...current, [volumeTreeKey(expandedWorkId, expandedVolumeId)]: items }));
       } catch (cause) {
         if (active && initial) setError(messageOf(cause));
       } finally {
@@ -262,7 +266,7 @@ export function WorksSidebarPanel({
           if (workId !== null && volumeId !== null && pluginEnabled(workId, "writing")) {
             const nextChapters = await remote.listChapters({ workId, volumeId });
             if (!active) return;
-            setChapters((current) => ({ ...current, [volumeId]: nextChapters }));
+            setChapters((current) => ({ ...current, [volumeTreeKey(workId, volumeId)]: nextChapters }));
           }
         } catch {
           // The low-frequency refresh remains as a fallback after transient watcher refresh failures.
@@ -294,14 +298,16 @@ export function WorksSidebarPanel({
     if (createWorkRequest > 0) beginCreate({ kind: "work" });
   }, [createWorkRequest]);
 
-  const openConversation = async (workId: string): Promise<void> => {
-    if (openWorkSession === undefined || sessionPending.current) return;
+  const openConversation = async (workId: string, fresh = false): Promise<void> => {
+    const open = fresh ? sessionNavigation?.newWorkSession : openWorkSession;
+    if (open === undefined || sessionPending.current) return;
     sessionPending.current = true;
     setSessionBusy(true);
     setRetryWorkId(null);
     setError(null);
     try {
-      await openWorkSession(workId);
+      await open(workId);
+      if (workspaceMode) setSelection({ overlay: null });
     } catch (cause) {
       setRetryWorkId(workId);
       setError(`作品已保存，无法打开作品会话：${messageOf(cause)}`);
@@ -345,7 +351,7 @@ export function WorksSidebarPanel({
       setWorks((current) => upsertById(current, imported.work));
       setVolumes((current) => ({ ...current, [imported.work.id]: [imported.volume] }));
       setExpandedWorkId(imported.work.id);
-      setExpandedVolumeId(imported.volume.id);
+      setExpandedVolumeId(imported.volume.id, imported.work.id);
       setSelection({ workId: imported.work.id });
       setImportPreview(null);
       setImportTitle("");
@@ -380,7 +386,7 @@ export function WorksSidebarPanel({
           [createTarget.workId]: upsertById(current[createTarget.workId] ?? [], created),
         }));
         setExpandedWorkId(createTarget.workId);
-        setExpandedVolumeId(created.id);
+        setExpandedVolumeId(created.id, createTarget.workId);
         setSelection({ workId: createTarget.workId, volumeId: created.id });
       } else {
         const created = await remote.createChapter({
@@ -392,7 +398,7 @@ export function WorksSidebarPanel({
         });
         setChapters((current) => ({
           ...current,
-          [createTarget.volumeId]: upsertById(current[createTarget.volumeId] ?? [], created),
+          [volumeTreeKey(createTarget.workId, createTarget.volumeId)]: upsertById(current[volumeTreeKey(createTarget.workId, createTarget.volumeId)] ?? [], created),
         }));
         setSelection({
           workId: created.workId,
@@ -447,7 +453,7 @@ export function WorksSidebarPanel({
         });
         setChapters((current) => ({
           ...current,
-          [renameTarget.volumeId]: upsertById(current[renameTarget.volumeId] ?? [], renamed),
+          [volumeTreeKey(renameTarget.workId, renameTarget.volumeId)]: upsertById(current[volumeTreeKey(renameTarget.workId, renameTarget.volumeId)] ?? [], renamed),
         }));
         if (selection.chapterId === renamed.id) setSelection({ chapterTitle: renamed.title });
       }
@@ -501,7 +507,7 @@ export function WorksSidebarPanel({
         }));
         setChapters((current) => {
           const next = { ...current };
-          delete next[target.volumeId];
+          delete next[volumeTreeKey(target.workId, target.volumeId)];
           return next;
         });
         if (selection.volumeId === target.volumeId) setSelection({ volumeId: null });
@@ -509,7 +515,7 @@ export function WorksSidebarPanel({
       } else {
         setChapters((current) => ({
           ...current,
-          [target.volumeId]: (current[target.volumeId] ?? []).filter((item) => item.id !== target.chapterId),
+          [volumeTreeKey(target.workId, target.volumeId)]: (current[volumeTreeKey(target.workId, target.volumeId)] ?? []).filter((item) => item.id !== target.chapterId),
         }));
         if (selection.chapterId === target.chapterId) setSelection({ chapterId: null, overlay: null });
       }
@@ -720,7 +726,7 @@ export function WorksSidebarPanel({
                           setMenuTarget(null);
                           if (remote.getVideoProject) switchWorkMode(work.id, work.projectKind ?? "novel");
                           else setSelection({ workId: work.id });
-                          setExpandedVolumeId(getSelection().volumeId);
+                          setExpandedVolumeId(getSelection().volumeId, work.id);
                           // A changed selection loads volumes in the effect above.
                           // Only refresh here when reopening the same work.
                           if (selection.workId === work.id) void loadVolumes(work.id);
@@ -731,6 +737,7 @@ export function WorksSidebarPanel({
                         <span className="jz-tree-kind work"><Icon name="folder" /></span>
                         <span className="jz-tree-title">{work.title}</span>
                       </button>
+                      {workspaceMode && sessionNavigation && <IconButton icon="chat" label={`在${work.title}新建对话`} className="jz-row-action jz-work-new-chat" disabled={sessionBusy} onClick={() => { void openConversation(work.id, true); }} />}
                       <span className="jz-project-tag" data-kind={work.projectKind ?? "novel"}>{work.projectKind === "video" ? "视频" : "小说"}</span>
                       {renderActions(target, videoMode || !writingEnabled ? undefined : () => { beginCreate({ kind: "volume", workId: work.id }); }, videoMode || !writingEnabled ? undefined : "新建分卷")}
                     </>
@@ -739,7 +746,7 @@ export function WorksSidebarPanel({
 
                 {workExpanded && (
                   <div className="jz-work-sections" role="group">
-                    {sessionNavigation !== undefined && <WorkSessions workId={work.id} navigation={sessionNavigation} />}
+                    {sessionNavigation !== undefined && <WorkSessions workId={work.id} navigation={sessionNavigation} showCreate={!workspaceMode} />}
                     <div className="jz-work-files" role="group" aria-label="作品文件">
                     <div className="jz-work-section-heading"><span><Icon name="folder" />作品文件</span>
                       {work.hasLegacyVideo && videoEnabled && <button type="button" onClick={() => switchWorkMode(work.id, videoMode ? "novel" : "video")}>{videoMode ? "返回小说章节" : "历史视频内容"}</button>}

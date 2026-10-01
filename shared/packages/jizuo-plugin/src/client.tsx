@@ -794,7 +794,7 @@ export function registerNativeShellContributions(
     ),
   );
 
-  const navigation = createSessionNavigation(host, remote);
+  const navigation = createSessionNavigation(host, remote, { revealConversation: hostUi === "native" });
   const stopSidebar = hostUi === "native" ? registerNativeCreationNavigation() : host.slots.inject("sidebar", () => host.slots.register({
     name: "sidebar",
     priority: -1,

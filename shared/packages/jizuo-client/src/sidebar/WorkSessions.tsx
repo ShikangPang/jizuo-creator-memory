@@ -4,7 +4,7 @@ import { IconButton } from "../ui/IconButton.tsx";
 import { useEffect, useRef, useState } from "react";
 import type { SessionNavigation, WorkSessionItem } from "./sessionNavigation.ts";
 
-export function WorkSessions({ workId, navigation }: { workId?: string; navigation: SessionNavigation }) {
+export function WorkSessions({ workId, navigation, showCreate = true }: { workId?: string; navigation: SessionNavigation; showCreate?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const [items, setItems] = useState<WorkSessionItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export function WorkSessions({ workId, navigation }: { workId?: string; navigati
   return <div className="jz-work-sessions" role="group" aria-label={workId === undefined ? "最近对话" : "对话"}>
     <div className="jz-work-section-heading">
       <span><ActionIcon name="chat" className="" />{workId === undefined ? "最近对话" : "对话"}</span>
-      <IconButton icon="add" label={workId === undefined ? "新建普通会话" : "在作品内新建会话"} type="button" className="jz-section-create" aria-label={workId === undefined ? "新建普通会话" : "在作品内新建会话"} title="新建会话" disabled={busy} onClick={() => { void create(); }} />
+      {showCreate && <IconButton icon="add" label={workId === undefined ? "新建普通会话" : "在作品内新建会话"} type="button" className="jz-section-create" aria-label={workId === undefined ? "新建普通会话" : "在作品内新建会话"} title="新建会话" disabled={busy} onClick={() => { void create(); }} />}
     </div>
     {error !== null && <p role="alert">{error}</p>}
     {workId === undefined && items.length === 0 && error === null && <p className="jz-session-empty">先聊聊想法，也可以引用文件开始创作</p>}

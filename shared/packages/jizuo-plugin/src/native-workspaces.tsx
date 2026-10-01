@@ -31,6 +31,18 @@ export async function connectProjectWorkspaces(
   return paths;
 }
 
+/** Reuse the most recent visible conversation when entering an ordinary workspace. */
+export function openWorkspaceConversation(host: NativeShellHost, workspaceId: Parameters<NativeShellHost["uiWorkspace"]["startSession"]>[0]): void {
+  clearSelection();
+  const workspaces = host.workspaces.list?.getSnapshot();
+  const sessions = host.sessions?.list.getSnapshot();
+  const members = workspaceId === undefined ? sessions?.ids ?? [] : workspaces?.items?.find(item => item.workspaceId === workspaceId)?.sessionIds ?? [];
+  const candidates = members.flatMap(id => sessions?.byId[id] && !workspaces?.archivedSessionIds.includes(id) ? [sessions.byId[id]] : []);
+  const recent = candidates.find(item => item.id === sessions?.current) ?? candidates.sort((a,b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
+  if (recent) host.sessions?.open(recent.id);
+  else host.uiWorkspace.startSession(workspaceId);
+}
+
 /** Replaces only the workspace region; the host still owns navigation and sessions. */
 export function NativeWorkspaces({ host, ...props }: ComponentProps<typeof WorksSidebarPanel> & { host: NativeShellHost }) {
   const [projects, setProjects] = useState<WorkSummary[]>([]);
@@ -78,10 +90,11 @@ export function NativeWorkspaces({ host, ...props }: ComponentProps<typeof Works
         const title = !baseTitle || baseTitle === "default-workspace" ? "默认工作区" : baseTitle;
         const isExpanded = expanded.has(key);
         return <section key={key} role="treeitem" aria-expanded={isExpanded} className="jz-work-node">
-          <div className="jz-tree-row"><button className="jz-tree-main" onClick={() => setExpanded(old => { const next = new Set(old); if (next.has(key)) next.delete(key); else next.add(key); return next; })}><ActionIcon name={isExpanded ? "down" : "right"} /><ActionIcon name="folder" />{title}</button>
+          <div className="jz-tree-row"><button className="jz-row-action" aria-label={`${isExpanded ? "折叠" : "展开"}${title}`} onClick={() => setExpanded(old => { const next = new Set(old); if (next.has(key)) next.delete(key); else next.add(key); return next; })}><ActionIcon name={isExpanded ? "down" : "right"} /></button>
+            <button className="jz-tree-main" onClick={() => run(() => openWorkspaceConversation(host, item.workspaceId))}><ActionIcon name="folder" />{title}</button>
             <button aria-label={`在${title}新建会话`} onClick={() => { clearSelection(); host.uiWorkspace.startSession(item.workspaceId); }}>＋</button>
           </div>
-          {isExpanded && <WorkSessions navigation={{
+          {isExpanded && <WorkSessions showCreate={false} navigation={{
             listWorkSessions: async () => [],
             listGeneralSessions: async () => item.sessionIds.filter(id => !snapshot?.archivedSessionIds.includes(id)).map(id => ({
               id, title: sessions?.byId[id]?.title || sessions?.byId[id]?.displayTitle || "新会话", current: sessions?.current === id,

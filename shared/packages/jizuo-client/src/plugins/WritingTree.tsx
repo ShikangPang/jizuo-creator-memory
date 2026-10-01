@@ -4,6 +4,8 @@ import { setSelection, useSelection } from "../content/selection.ts";
 import { ActionIcon } from "../ui/ActionIcon.tsx";
 import type { TreeTarget, CreateTarget } from "../sidebar/WorksSidebarPanel.tsx";
 
+export const volumeTreeKey = (workId: string, volumeId: string): string => JSON.stringify([workId, volumeId]);
+
 export interface WritingTreeProps {
   work: WorkSummary;
   volumes: Record<string, VolumeSummary[]>;
@@ -51,7 +53,7 @@ export function WritingTree({ work, volumes, chapters, expandedVolumeId, renameT
                   <span className={`jz-tree-chevron ${volumeExpanded ? "expanded" : ""}`}><ActionIcon name="right" className="jz-icon" /></span>
                   <span className="jz-tree-kind"><ActionIcon name="folder" className="jz-icon" /></span>
                   <span className="jz-tree-title">{volume.title}</span>
-                  <span className="jz-tree-count">{(chapters[volume.id] ?? []).length || ""}</span>
+                  <span className="jz-tree-count">{(chapters[volumeTreeKey(work.id, volume.id)] ?? []).length || ""}</span>
                 </button>
                 {renderActions(volumeTarget, () => { beginCreate({ kind: "chapter", workId: work.id, volumeId: volume.id }); }, "新建章节")}
               </>
@@ -60,8 +62,8 @@ export function WritingTree({ work, volumes, chapters, expandedVolumeId, renameT
 
           {volumeExpanded && (
             <div className="jz-tree-children chapters" role="group">
-              {(chapters[volume.id] ?? []).length === 0 && <p className="jz-tree-empty">暂无章节</p>}
-              {(chapters[volume.id] ?? []).map((chapter) => {
+              {(chapters[volumeTreeKey(work.id, volume.id)] ?? []).length === 0 && <p className="jz-tree-empty">暂无章节</p>}
+              {(chapters[volumeTreeKey(work.id, volume.id)] ?? []).map((chapter) => {
                 const chapterTarget: TreeTarget = {
                   kind: "chapter",
                   workId: work.id,

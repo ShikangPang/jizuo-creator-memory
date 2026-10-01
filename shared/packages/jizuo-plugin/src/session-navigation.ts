@@ -1,4 +1,4 @@
-import { clearSelection, getSelection, restoreWorkSelection, type JizuoContentRemote, type SessionNavigation } from "../../jizuo-client/src/shell.tsx";
+import { clearSelection, getSelection, setSelection, restoreWorkSelection, type JizuoContentRemote, type SessionNavigation } from "../../jizuo-client/src/shell.tsx";
 import type { NativeShellHost } from "./client.tsx";
 
 function pathKey(path: string): string {
@@ -6,16 +6,19 @@ function pathKey(path: string): string {
   return /^[a-z]:\//i.test(normalized) || normalized.startsWith("//") ? normalized.toLowerCase() : normalized;
 }
 
-export function createSessionNavigation(host: NativeShellHost, remote: JizuoContentRemote): SessionNavigation & {
+export function createSessionNavigation(host: NativeShellHost, remote: JizuoContentRemote, options: { revealConversation?: boolean } = {}): SessionNavigation & {
   openWork(workId: string): Promise<void>;
   dispose(): void;
 } {
   const pending = new Map<string, Promise<void>>();
   const recent = new Map<string, string>();
   const recentKey = (workspaceId: string) => `jizuo.work.last-session:${workspaceId}`;
+  let lastCurrent: string | undefined;
   const rememberCurrent = () => {
     const current = host.sessions?.list.getSnapshot().current;
     if (current === undefined) return;
+    if (options.revealConversation && lastCurrent !== current) setSelection({overlay: null});
+    lastCurrent = current;
     const workspace = host.workspaces.list?.getSnapshot().items?.find((item) => item.sessionIds.includes(current));
     if (workspace === undefined) return;
     recent.set(workspace.workspaceId, current);
@@ -39,6 +42,7 @@ export function createSessionNavigation(host: NativeShellHost, remote: JizuoCont
     host.sessions.open(sessionId);
     if (workId === undefined) clearSelection();
     else if (getSelection().workId !== workId) restoreWorkSelection(workId);
+    if (options.revealConversation) setSelection({overlay: null});
     rememberCurrent();
   };
   // Legacy work renames preserved the full stable ID suffix, but changed the title prefix.
