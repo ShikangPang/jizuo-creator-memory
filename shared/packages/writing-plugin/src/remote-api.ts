@@ -92,9 +92,10 @@ export class WritingRemoteApi {
   async listProposals(request: ChapterTarget, signal: AbortSignal) {
     signal.throwIfAborted();
     const workflowRuns = this.workflowRuns;
-    if (workflowRuns === undefined) throw new JizuoError("runtime_unavailable", "无法确认提案归属，请重新启动即作");
     const proposals = await this.domain.listProposals(request);
-    return proposals.filter((proposal) => !workflowRuns.ownsProposal(proposal.id));
+    const visible = await Promise.all(proposals.map(async proposal =>
+      !workflowRuns?.ownsProposal(proposal.id) && !await this.domain.isWorkflowOwnedProposal(proposal.id)));
+    return proposals.filter((_proposal, index) => visible[index]);
   }
 
   async getProposalPreview(request: { proposalId: string }, signal: AbortSignal): Promise<ChapterProposal> {
@@ -216,8 +217,7 @@ export class WritingRemoteApi {
     if (await this.domain.isWorkflowOwnedProposal(proposalId)) {
       throw new JizuoError("denied", "该提案属于章节工作流，请在工作流进度中确认或拒绝");
     }
-    if (this.workflowRuns === undefined) throw new JizuoError("runtime_unavailable", "无法确认提案归属，请重新启动即作");
-    if (!this.workflowRuns.ownsProposal(proposalId)) return;
+    if (!this.workflowRuns?.ownsProposal(proposalId)) return;
     throw new JizuoError("denied", "该提案属于章节工作流，请在工作流进度中确认或拒绝");
   }
 }

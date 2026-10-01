@@ -35,6 +35,7 @@ export interface NativeShellHost {
           cwd?: string;
           blank: boolean;
           title?: string;
+          displayTitle?: string;
           updatedAt?: number;
         }>>;
       };

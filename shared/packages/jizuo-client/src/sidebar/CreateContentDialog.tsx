@@ -2,9 +2,11 @@ import { ActionIcon } from "../ui/ActionIcon.tsx";
 import { IconButton } from "../ui/IconButton.tsx";
 import { useEffect, useId, useRef, type FormEvent } from "react";
 
-export function CreateContentDialog({ kind, projectKind, context, title, busy, error, onTitleChange, onSubmit, close }: {
+export function CreateContentDialog({ kind, projectKind, onProjectKindChange, availableKinds, context, title, busy, error, onTitleChange, onSubmit, close }: {
   kind: "work" | "volume" | "chapter";
   projectKind?: "novel" | "video";
+  onProjectKindChange?: (kind: "novel" | "video") => void;
+  availableKinds?: readonly ("novel" | "video")[];
   context?: string | undefined;
   title: string;
   busy: boolean;
@@ -33,6 +35,9 @@ export function CreateContentDialog({ kind, projectKind, context, title, busy, e
       </button>
     </header>
     <form className="jz-create-content-form" onSubmit={onSubmit}>
+      {kind === "work" && onProjectKindChange && <label><span>项目类型</span><select aria-label="项目类型" value={projectKind} disabled={busy} onChange={event => onProjectKindChange(event.target.value as "novel" | "video")}>
+        {(availableKinds ?? ["novel", "video"]).map(kind => <option key={kind} value={kind}>{kind === "video" ? "视频" : "小说"}</option>)}
+      </select></label>}
       {context && <p className="jz-create-content-context" id={contextId} title={context}>{context}</p>}
       <label>
         <span>{name}名称</span>

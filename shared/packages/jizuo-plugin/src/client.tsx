@@ -1,5 +1,5 @@
 import { StorageLocation } from "../../jizuo-client/src/settings/WorkStorageSettings.tsx";
-import { NativeCreationProjects, NativeCreationIcon } from "../../jizuo-client/src/sidebar/NativeCreationProjects.tsx";
+import { NativeWorkspaces } from "./native-workspaces.tsx";
 import { WORKSPACE_PLUGINS, type WorkspacePluginId } from "../../jizuo-client/src/plugins/registry.ts";
 import { subscribeWorkspacePlugins, isBuiltinPluginEnabled } from "../../jizuo-client/src/plugins/preferences.ts";
 import type { NativeShellHost, NativeShellSlots } from "./shell-host.ts";
@@ -836,14 +836,11 @@ export function registerNativeShellContributions(
       const enabled = WORKSPACE_PLUGINS.some(({ id }) => creationPanels(id) && isBuiltinPluginEnabled(id));
       if (enabled === (stops.length > 0)) return;
       if (!enabled) { stops.splice(0).reverse().forEach(stop => stop()); return; }
-      stops.push(host.slots.inject("main", () => host.slots.register({
-        name: "main", key: "jizuo-creation",
-        inject: () => ({ remote, pickImportFile, pickExportFile, subscribeWorksChanges,
-          sessionNavigation: navigation }),
-      }, NativeCreationProjects)));
-      stops.push(host.slots.inject("sidebar.panellist", () => host.slots.register({
-        name: "sidebar.panellist", id: "jizuo-creation", order: 30, label: () => "即作创作",
-      }, NativeCreationIcon)));
+      stops.push(host.slots.inject("sidebar.workspaces", () => host.slots.register({
+        name: "sidebar.workspaces", id: "jizuo-workspaces", priority: -10,
+        inject: () => ({ host, remote, pickImportFile, pickExportFile, subscribeWorksChanges,
+          sessionNavigation: navigation, openWorkSession: navigation.openWork }),
+      }, NativeWorkspaces)));
     };
     const stopPanels = subscribeCreationPanels(sync);
     const stopPreferences = subscribeWorkspacePlugins(sync);

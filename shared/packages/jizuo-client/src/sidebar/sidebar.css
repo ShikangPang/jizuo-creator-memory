@@ -1208,3 +1208,7 @@
 .jz-project-kind-tabs { display: flex; gap: 6px; padding: 8px 12px; }
 .jz-project-kind-tabs button { flex: 1; padding: 6px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 .jz-project-kind-tabs button[aria-pressed="true"] { background: var(--accent-soft, #e8edf5); font-weight: 600; }
+
+.jz-project-tag { flex: none; font-size: 10px; line-height: 18px; padding: 0 5px; border-radius: 4px; color: var(--dsw-alias-label-secondary, #626974); background: var(--dsw-alias-interactive-bg-hover, #e9edf3); }
+.jz-project-tag[data-kind="video"] { color: #7550a0; }
+.jz-project-search { box-sizing: border-box; width: 100%; min-width: 0; margin: 4px 0 10px; border: 1px solid var(--dsw-alias-border-l1, #d8dce1); border-radius: 6px; padding: 6px 8px; background: transparent; color: inherit; }

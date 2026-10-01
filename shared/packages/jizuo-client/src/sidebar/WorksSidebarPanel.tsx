@@ -94,8 +94,14 @@ export function WorksSidebarPanel({
   openWorkSession,
   sessionNavigation,
   createWorkRequest = 0,
+  workspaceMode = false,
+  onWorksChanged,
+  extraWorkspaces,
 }: {
   remote: JizuoContentRemote;
+  workspaceMode?: boolean;
+  onWorksChanged?: (works: WorkSummary[]) => void;
+  extraWorkspaces?: (query: string, works: WorkSummary[]) => ReactNode;
   openWorkSession?: (workId: string) => Promise<void>;
   sessionNavigation?: SessionNavigation;
   createWorkRequest?: number;
@@ -104,6 +110,7 @@ export function WorksSidebarPanel({
   subscribeWorksChanges?: SubscribeWorksChanges;
 }) {
   const selection = useSelection();
+  const [query, setQuery] = useState("");
   const pluginEnabled = useWorkspacePlugins();
   const [workTool, setWorkTool] = useState<{ workId: string; title: string; mode: "export" | "search" } | null>(null);
   const novelAvailable = isWorkspacePluginAvailable("writing") && isBuiltinPluginEnabled("writing");
@@ -147,6 +154,8 @@ export function WorksSidebarPanel({
     if (projectKind === "novel" && !novelAvailable && videoAvailable) setProjectKind("video");
     if (projectKind === "video" && !videoAvailable && novelAvailable) setProjectKind("novel");
   }, [novelAvailable, videoAvailable, projectKind]);
+
+  useEffect(() => { onWorksChanged?.(works); }, [works, onWorksChanged]);
 
   const loadWorks = async (): Promise<void> => {
     const items = await remote.listWorks();
@@ -632,14 +641,14 @@ export function WorksSidebarPanel({
       {retryWorkId !== null && <IconButton icon="reset" label={"重试打开会话"} type="button" disabled={sessionBusy} onClick={() => { void openConversation(retryWorkId); }} />}
       <div className="jz-works-toolbar">
         <div>
-          <strong>{showTrash ? "回收站" : projectKind === "video" ? "视频项目" : "小说项目"}</strong>
-          <span>{showTrash ? `${trashItems.length} 项` : `${works.filter(work => (work.projectKind ?? "novel") === projectKind).length} 个项目`}</span>
+          <strong>{showTrash ? "回收站" : workspaceMode ? "工作区" : "项目"}</strong>
+          <span>{showTrash ? `${trashItems.length} 项` : `${works.length} 个项目`}</span>
         </div>
         {showTrash ? (
           <IconButton icon="left" label={"返回作品"} type="button" className="jz-toolbar-action textual" onClick={() => { setShowTrash(false); setError(null); }} />
         ) : (
           <div className="jz-toolbar-actions">
-            {pickImportFile && projectKind === "novel" && <button
+            {pickImportFile && novelAvailable && <button
               type="button"
               className="jz-toolbar-action"
               aria-label="导入 TXT 或 DOCX"
@@ -649,17 +658,14 @@ export function WorksSidebarPanel({
             >
               <Icon name="import" />
             </button>}
-            <button type="button" className="jz-toolbar-action" aria-label={`新建${projectKind === "video" ? "视频" : "小说"}项目`} onClick={() => { beginCreate({ kind: "work" }); }}>
+            <button type="button" className="jz-toolbar-action" aria-label="新建项目" onClick={() => { beginCreate({ kind: "work" }); }}>
               <Icon name="plus" />
             </button>
           </div>
         )}
       </div>
 
-      {!showTrash && <div className="jz-project-kind-tabs" role="group" aria-label="项目类型">
-        {novelAvailable && <button type="button" aria-pressed={projectKind === "novel"} onClick={() => setProjectKind("novel")}>小说项目</button>}
-        {videoAvailable && <button type="button" aria-pressed={projectKind === "video"} onClick={() => setProjectKind("video")}>视频项目</button>}
-      </div>}
+      {!showTrash && <input className="jz-project-search" aria-label="搜索工作区" placeholder="搜索项目或工作区" value={query} onChange={event => setQuery(event.target.value)} />}
       {!showTrash && isBuiltinPluginEnabled("memory") && (selection.workId === null || pluginEnabled(selection.workId, "memory")) && <button type="button" className="jz-memory-palace-entry" aria-label="打开记忆宫殿"
         title={selection.workId === null ? "请先选择作品" : "打开记忆宫殿"}
         disabled={selection.workId === null} aria-pressed={selection.overlay === "memory"}
@@ -668,7 +674,7 @@ export function WorksSidebarPanel({
       </button>}
 
       {createTarget !== null && <CreateContentDialog
-        kind={createTarget.kind} projectKind={projectKind}
+        kind={createTarget.kind} projectKind={projectKind} onProjectKindChange={setProjectKind} availableKinds={[...(novelAvailable ? ["novel" as const] : []), ...(videoAvailable ? ["video" as const] : [])]}
         context={createTarget.kind === "work" ? undefined : [
           works.find((work) => work.id === createTarget.workId)?.title,
           createTarget.kind === "chapter"
@@ -682,13 +688,13 @@ export function WorksSidebarPanel({
       {error !== null && createTarget === null && <p className="jz-sidebar-error" role="alert">{error}</p>}
       {loading && <div className="jz-tree-skeleton" aria-label="正在加载"><i /><i /><i /></div>}
 
-      {!showTrash && !loading && !works.some(work => (work.projectKind ?? "novel") === projectKind) && (
+      {!showTrash && !loading && works.length === 0 && !workspaceMode && (
         <div className="jz-sidebar-empty"><Icon name="book" /><strong>还没有{projectKind === "video" ? "视频" : "小说"}项目</strong><span>{projectKind === "video" ? "独立创建视频项目，再选择小说章节生成剧本。" : "创建小说项目，开始整理章节。"}</span></div>
       )}
 
       {!showTrash && (
         <div className="jz-work-tree" role="tree" aria-label="作品目录">
-          {works.filter(work => (work.projectKind ?? "novel") === projectKind).map((work) => {
+          {works.filter(work => work.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).map((work) => {
             const workExpanded = expandedWorkId === work.id;
             const writingEnabled = work.projectKind !== "video" && pluginEnabled(work.id, "writing");
             const videoEnabled = pluginEnabled(work.id, "video") && !!remote.getVideoProject;
@@ -722,9 +728,10 @@ export function WorksSidebarPanel({
                         }}
                       >
 
-                        <span className="jz-tree-kind work"><Icon name="book" /></span>
+                        <span className="jz-tree-kind work"><Icon name="folder" /></span>
                         <span className="jz-tree-title">{work.title}</span>
                       </button>
+                      <span className="jz-project-tag" data-kind={work.projectKind ?? "novel"}>{work.projectKind === "video" ? "视频" : "小说"}</span>
                       {renderActions(target, videoMode || !writingEnabled ? undefined : () => { beginCreate({ kind: "volume", workId: work.id }); }, videoMode || !writingEnabled ? undefined : "新建分卷")}
                     </>
                   )}
@@ -749,6 +756,7 @@ export function WorksSidebarPanel({
               </section>
             );
           })}
+          {extraWorkspaces?.(query, works)}
         </div>
       )}
 

@@ -32,7 +32,7 @@ export function createSessionNavigation(host: NativeShellHost, remote: JizuoCont
     }).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
   };
   const summaries = (sessionIds: readonly string[]) => sessionItems(sessionIds).map((item) => ({
-    id: item.id, title: item.title?.trim() || "新会话", current: host.sessions?.list.getSnapshot().current === item.id,
+    id: item.id, title: item.title?.trim() || item.displayTitle?.trim() || "新会话", current: host.sessions?.list.getSnapshot().current === item.id,
   }));
   const open = (sessionId: string, workId?: string) => {
     if (host.sessions === undefined) throw new Error("当前运行时无法打开会话，请重新启动即作");

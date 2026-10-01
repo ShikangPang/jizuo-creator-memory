@@ -20,3 +20,7 @@
 .jz-native-project-hint { margin: auto; padding: 24px; }
 .jz-native-project-hint h1 { font-size: 20px; }
 .jz-native-project-hint p { color: var(--dsw-alias-label-secondary, #777); }
+
+[data-plugin="jizuo"][data-surface="native-workspaces"] { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; overflow: auto; padding: 8px; color: var(--dsw-alias-label-primary, #202326); }
+[data-surface="native-workspaces"] .jz-works-panel { overflow: visible; flex: 1 0 auto; }
+.jz-add-workspace { border: 0; background: transparent; color: inherit; text-align: left; padding: 10px; cursor: pointer; }
