@@ -4,9 +4,10 @@ import { basename, extname } from "node:path";
 
 import {
   PreviewImportInput,
+  JizuoError,
+  MAX_NOVEL_IMPORT_BYTES,
   type ImportChapterPreview,
   type ImportPreview,
-  type NovelFileFormat,
 } from "@jizuo/contracts";
 import mammoth from "mammoth";
 
@@ -33,13 +34,15 @@ function splitMarkdown(markdown: string, fallbackTitle: string): ImportChapterPr
   if (selected.length === 0) {
     return [{ title: fallbackTitle, content: markdown.trim() }];
   }
-  return selected.map((heading, index) => {
+  const chapters = selected.map((heading, index) => {
     const next = selected[index + 1];
     return {
       title: heading.title,
       content: lines.slice(heading.index + 1, next?.index ?? lines.length).join("\n").trim(),
     };
   });
+  const preface = lines.slice(0, selected[0]!.index).join("\n").trim();
+  return preface === "" ? chapters : [{ title: "前言", content: preface }, ...chapters];
 }
 
 function splitText(text: string, fallbackTitle: string): ImportChapterPreview[] {
@@ -90,20 +93,40 @@ function htmlToMarkdown(html: string): string {
     .trim();
 }
 
-export async function previewImport(rawInput: { sourcePath: string; format: NovelFileFormat }): Promise<ImportPreview> {
+export async function previewImport(rawInput: PreviewImportInput): Promise<ImportPreview> {
   const input = PreviewImportInput.parse(rawInput);
-  const source = await readFile(input.sourcePath);
+  const source = input.sourceBase64 === undefined
+    ? await readFile(input.sourcePath)
+    : Buffer.from(input.sourceBase64, "base64");
+  if (input.sourceBase64 !== undefined) {
+    if (source.toString("base64") !== input.sourceBase64) {
+      throw new JizuoError("validation_error", "文件内容无效，请重新选择小说文件");
+    }
+    if (source.length > MAX_NOVEL_IMPORT_BYTES) {
+      throw new JizuoError("validation_error", "文件超过 10 MB，请拆分后再导入");
+    }
+  }
+  if (source.length === 0) throw new JizuoError("validation_error", "文件为空，请选择有正文的小说文件");
   const suggestedTitle = basename(input.sourcePath, extname(input.sourcePath));
   let chapters: ImportChapterPreview[];
   const warnings: string[] = [];
   if (input.format === "docx") {
-    const converted = await mammoth.convertToHtml({ path: input.sourcePath });
+    // Parse the same bytes that are hashed, including in desktop path mode.
+    let converted;
+    try {
+      converted = await mammoth.convertToHtml({ buffer: source });
+    } catch {
+      throw new JizuoError("validation_error", "无法读取 Word 文档，请确认文件为有效的 DOCX 格式后重试");
+    }
     chapters = splitMarkdown(htmlToMarkdown(converted.value), suggestedTitle);
     warnings.push(...converted.messages.map((message) => message.message));
   } else if (input.format === "markdown") {
     chapters = splitMarkdown(decodeText(source), suggestedTitle);
   } else {
     chapters = splitText(decodeText(source), suggestedTitle);
+  }
+  if (chapters.every(chapter => chapter.content.trim() === "")) {
+    throw new JizuoError("validation_error", "文件中没有可导入的正文，请检查文件内容");
   }
   const sourceHash = createHash("sha256").update(source).digest("hex");
   const previewHash = sha256Text(JSON.stringify({

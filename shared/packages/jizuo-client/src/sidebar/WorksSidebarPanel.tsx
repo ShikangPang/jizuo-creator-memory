@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, type ComponentProps, type FormEvent, type 
 import type {
   ChapterSummary,
   ImportPreview,
+  PreviewImportInput,
   TrashEntry,
   TrashImpact,
   TrashTarget,
@@ -25,6 +26,7 @@ import { CreateContentDialog } from "./CreateContentDialog.tsx";
 import { WorkToolsDialog, type PickExportFile } from "./WorkToolsDialog.tsx";
 import { WorkSessions } from "./WorkSessions.tsx";
 import { MemoryPalaceEntry } from "./MemoryPalaceEntry.tsx";
+import { readNovelImportFile } from "./novel-import-file.ts";
 import type { SessionNavigation } from "./sessionNavigation.ts";
 
 function MenuAction({ icon, label, className, ...props }: ComponentProps<typeof IconButton>) {
@@ -46,10 +48,7 @@ export type TreeTarget =
 type DeleteState = { target: TreeTarget; impact: TrashImpact | null };
 const BACKGROUND_REFRESH_INTERVAL_MS = 15_000;
 
-export interface ImportFileSelection {
-  sourcePath: string;
-  format: "text" | "docx";
-}
+export type ImportFileSelection = PreviewImportInput;
 
 export type PickImportFile = () => Promise<ImportFileSelection | null>;
 export type SubscribeWorksChanges = (
@@ -144,6 +143,9 @@ export function WorksSidebarPanel({
   const [showTrash, setShowTrash] = useState(false);
   const [permanentTarget, setPermanentTarget] = useState<TrashEntry | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importSource, setImportSource] = useState<PreviewImportInput | null>(null);
+  const importFileInput = useRef<HTMLInputElement>(null);
+  const importPending = useRef(false);
   const [importTitle, setImportTitle] = useState("");
   const [retryWorkId, setRetryWorkId] = useState<string | null>(null);
   const [sessionBusy, setSessionBusy] = useState(false);
@@ -326,34 +328,39 @@ export function WorksSidebarPanel({
     }
   };
 
-  const beginImport = async (): Promise<void> => {
-    if (busy) return;
+  const beginImport = async (file?: File): Promise<void> => {
+    if (busy || importPending.current) return;
+    importPending.current = true;
     setBusy(true);
     setError(null);
+    setImportPreview(null);
+    setImportSource(null);
     try {
-      const selected = await pickImportFile?.();
+      const selected = file ? await readNovelImportFile(file) : await pickImportFile?.();
       if (selected == null) return;
       if (remote.previewImport === undefined) throw new Error("当前运行时不支持作品导入，请重新启动即作");
       const preview = await remote.previewImport(selected);
+      setImportSource(selected);
       setImportPreview(preview);
       setImportTitle(preview.suggestedTitle);
     } catch (cause) {
       setError(messageOf(cause));
     } finally {
+      importPending.current = false;
       setBusy(false);
     }
   };
 
   const confirmImport = async (): Promise<void> => {
     const workTitle = importTitle.trim();
-    if (importPreview === null || workTitle === "" || busy) return;
+    if (importPreview === null || importSource === null || workTitle === "" || busy || importPending.current) return;
+    importPending.current = true;
     setBusy(true);
     setError(null);
     try {
       if (remote.applyImport === undefined) throw new Error("当前运行时不支持作品导入，请重新启动即作");
       const imported = await remote.applyImport({
-        sourcePath: importPreview.sourcePath,
-        format: importPreview.format,
+        ...importSource,
         previewHash: importPreview.previewHash,
         workTitle,
       });
@@ -361,14 +368,18 @@ export function WorksSidebarPanel({
       setVolumes((current) => ({ ...current, [imported.work.id]: [imported.volume] }));
       setExpandedWorkId(imported.work.id);
       setExpandedVolumeId(imported.volume.id, imported.work.id);
+      setQuery("");
+      setProjectKind("novel");
       setSelection({ workId: imported.work.id });
       setImportPreview(null);
+      setImportSource(null);
       setImportTitle("");
       void loadChapters(imported.work.id, imported.volume.id);
       await openConversation(imported.work.id);
     } catch (cause) {
       setError(messageOf(cause));
     } finally {
+      importPending.current = false;
       setBusy(false);
     }
   };
@@ -662,13 +673,13 @@ export function WorksSidebarPanel({
           <IconButton icon="left" label={"返回作品"} type="button" className="jz-toolbar-action textual" onClick={() => { setShowTrash(false); setError(null); }} />
         ) : (
           <div className="jz-toolbar-actions">
-            {pickImportFile && novelAvailable && <button
+            {novelAvailable && <button
               type="button"
               className="jz-toolbar-action"
-              aria-label="导入 TXT 或 DOCX"
-              title="导入 TXT 或 DOCX"
+              aria-label="导入小说"
+              title={pickImportFile ? "导入小说（TXT、DOCX）" : "导入小说（TXT、Markdown、DOCX）"}
               disabled={busy}
-              onClick={() => { void beginImport(); }}
+              onClick={() => { if (pickImportFile) void beginImport(); else importFileInput.current?.click(); }}
             >
               <Icon name="import" />
             </button>}
@@ -678,6 +689,15 @@ export function WorksSidebarPanel({
           </div>
         )}
       </div>
+
+      {!pickImportFile && novelAvailable && <input ref={importFileInput} type="file" hidden
+        aria-label="选择小说文件" accept=".txt,.md,.markdown,.docx" disabled={busy}
+        onChange={event => {
+          const file = event.currentTarget.files?.[0];
+          event.currentTarget.value = "";
+          if (file) void beginImport(file);
+        }} />}
+      {busy && importPending.current && <p role="status">{importPreview ? "正在导入小说，请稍候…" : "正在读取小说并识别章节…"}</p>}
 
       {!showTrash && <input className="jz-project-search" aria-label="搜索工作区" placeholder="搜索项目或工作区" value={query} onChange={event => setQuery(event.target.value)} />}
       {!showTrash && !workspaceMode && <MemoryPalaceEntry />}
@@ -694,7 +714,7 @@ export function WorksSidebarPanel({
         onTitleChange={setCreateTitle} onSubmit={(event) => { void create(event); }}
         close={() => { setCreateTarget(null); setCreateTitle(""); setError(null); }}
       />}
-      {error !== null && createTarget === null && <p className="jz-sidebar-error" role="alert">{error}</p>}
+      {error !== null && createTarget === null && importPreview === null && <p className="jz-sidebar-error" role="alert">{error}</p>}
       {loading && <div className="jz-tree-skeleton" aria-label="正在加载"><i /><i /><i /></div>}
 
       {!showTrash && !loading && works.length === 0 && !workspaceMode && (
@@ -826,7 +846,7 @@ export function WorksSidebarPanel({
               <span className="jz-dialog-icon"><Icon name="import" /></span>
               <div>
                 <h3 id="jz-import-title">导入作品</h3>
-                <small>{importPreview.format === "docx" ? "DOCX 文档" : "TXT 文本"} · {importPreview.chapters.length} 个章节</small>
+                <small>{importPreview.format === "docx" ? "DOCX 文档" : importPreview.format === "markdown" ? "Markdown 文档" : "TXT 文本"} · {importPreview.chapters.length} 个章节</small>
               </div>
             </header>
             <label className="jz-import-title-field">
@@ -850,12 +870,13 @@ export function WorksSidebarPanel({
             {importPreview.warnings.length > 0 && (
               <p className="jz-import-warning">解析提示：{importPreview.warnings.join("；")}</p>
             )}
+            {error !== null && <p className="jz-sidebar-error" role="alert">{error}</p>}
             <div className="jz-import-actions">
               <IconButton icon="close" label={"取消导入"}
                 type="button"
                 aria-label="取消导入"
                 disabled={busy}
-                onClick={() => { setImportPreview(null); setImportTitle(""); }}
+                onClick={() => { setImportPreview(null); setImportSource(null); setImportTitle(""); setError(null); }}
                />
               <IconButton icon="import" label={"确认导入"}
                 type="button"

@@ -357,9 +357,13 @@ export interface TrashImpact {
 
 export const NovelFileFormat = z.enum(["markdown", "text", "docx"]);
 
+export const MAX_NOVEL_IMPORT_BYTES = 10 * 1024 * 1024;
+
 export const PreviewImportInput = z.object({
   sourcePath: z.string().min(1),
   format: NovelFileFormat,
+  // Browser imports carry the selected file bytes; sourcePath is then its display name.
+  sourceBase64: z.string().min(1).max(Math.ceil(MAX_NOVEL_IMPORT_BYTES / 3) * 4).optional(),
 });
 
 export const ApplyImportInput = PreviewImportInput.extend({

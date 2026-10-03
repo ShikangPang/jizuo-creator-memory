@@ -149,6 +149,44 @@ try {
     assertObjectInput('jizuo_list_chat_media');
   }
   const service = original.service;
+  if (features.includes('writing')) {
+    const gateway = ctx.get('typertGateway');
+    assert.ok(gateway, 'official import gateway must activate');
+    const call = (method, request) => gateway.invoke({ namespace: 'jizuo', method, args: { request } });
+    const imports = [
+      { sourcePath: '导入验收.txt', format: 'text', sourceBase64: Buffer.from('前言内容。\n第一章 雨夜\n雨落在站台。\n第二章 回声\n钟声响起。').toString('base64') },
+      { sourcePath: '导入验收.md', format: 'markdown', sourceBase64: Buffer.from('Markdown 前言。\n# 第一章 雨夜\nMarkdown 正文。').toString('base64') },
+    ];
+    for (const source of imports) {
+      const before = await service.listWorks();
+      const preview = await call('previewImport', source);
+      assert.equal((await service.listWorks()).length, before.length, 'preview must not create works');
+      assert.equal(preview.chapters[0].title, '前言');
+      await assert.rejects(call('applyImport', { ...source, previewHash: '0'.repeat(64) }));
+      assert.equal((await service.listWorks()).length, before.length, 'invalid preview must not create works');
+      const imported = await call('applyImport', { ...source, previewHash: preview.previewHash, workTitle: '导入验收 ' + source.format });
+      assert.equal(imported.work.projectKind, 'novel');
+      assert.equal(imported.chapterCount, preview.chapters.length);
+      const chapters = await service.listChapters({ workId: imported.work.id, volumeId: imported.volume.id });
+      const target = { workId: imported.work.id, volumeId: imported.volume.id, chapterId: chapters[1].id };
+      const chapter = await call('readChapter', target);
+      assert.equal(chapter.content, preview.chapters[1].content);
+      await call('replaceChapter', { ...target, expectedRevision: chapter.revisionToken, content: '导入后可编辑。' });
+      assert.equal((await call('readChapter', target)).content, '导入后可编辑。');
+      if (source.format === 'text') {
+        const docxPath = join(home, '往返导入.docx');
+        await service.exportWork({workId: imported.work.id, format:'docx', destination:docxPath});
+        const docx = {sourcePath:'上传Word.docx',format:'docx',sourceBase64:(await readFile(docxPath)).toString('base64')};
+        await rm(docxPath);
+        const wordPreview = await call('previewImport', docx);
+        assert.ok(wordPreview.chapters.some(chapter => chapter.content.includes('导入后可编辑。')));
+        const wordWork = await call('applyImport', {...docx,previewHash:wordPreview.previewHash,workTitle:'Word 导入验收'});
+        assert.equal(wordWork.work.projectKind,'novel');
+      }
+    }
+    console.error('[verify] packed TXT, Markdown, DOCX imports and chapter editing passed');
+  }
+
   const novel = await service.createWork({ title: '推广验收小说', projectKind: 'novel' });
   const volume = await service.createVolume({ workId: novel.id, title: '第一卷' });
   const chapter = await service.createChapter({ workId: novel.id, volumeId: volume.id, title: '验收章节' });
@@ -197,7 +235,7 @@ try {
   assert.ok(ctx.get('jizuoCreationHost'));
   assert.notEqual(ctx.get('jizuoCreationHost'), original);
   for (const feature of features) assert.ok(ctx.get(serviceName(feature)));
-  verificationResult = { result: 'passed', runtime: runtimeManifest.version, node: process.version, version, bundles: actual.map(({ name, meta }) => ({ name, title: meta.title, description: meta.description, hasIcon: Boolean(meta.icon) })), checks: ['official manager metadata', 'official browser manifest consumption', 'HTTP batch factory registration', 'native sidebar retained', 'client module deduplication', 'independent disable', 'shared runtime retention', 'final-owner disposal', 'reenable all', 'skills list/get and owner lifecycle', 'structured media tool input', 'isolated content revision conflict', 'independent video source', 'rename/trash/restore', 'dream worker report', 'awaited disposal and clean temporary profile removal'] };
+  verificationResult = { result: 'passed', runtime: runtimeManifest.version, node: process.version, version, bundles: actual.map(({ name, meta }) => ({ name, title: meta.title, description: meta.description, hasIcon: Boolean(meta.icon) })), checks: ['packed TXT/Markdown/DOCX import through official RPC', 'import preview and content conflict checks', 'imported chapter editing', 'official manager metadata', 'official browser manifest consumption', 'HTTP batch factory registration', 'native sidebar retained', 'client module deduplication', 'independent disable', 'shared runtime retention', 'final-owner disposal', 'reenable all', 'skills list/get and owner lifecycle', 'structured media tool input', 'isolated content revision conflict', 'independent video source', 'rename/trash/restore', 'dream worker report', 'awaited disposal and clean temporary profile removal'] };
 } finally {
   try { await ctx?.fiber.dispose(); }
   finally {
